@@ -58,43 +58,43 @@
     .tj-notes-input { width:100%; min-height:100px; border:1px solid var(--line); border-radius:8px; padding:12px; font-family:'Work Sans', sans-serif; font-size:14px; line-height:1.7; resize:vertical; background:var(--paper); color:var(--ink); }
     .tj-btn-save { background:var(--stamp); color:#fff; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer; font-weight:500; margin-top:8px; }
     
-    /* 登入畫面 */
     .tj-login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--paper); text-align: center; }
     .tj-login-btn { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #ddd; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .tj-user-profile { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     .tj-user-avatar { width: 28px; height: 28px; border-radius: 50%; }
   </style>
- <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- 全域套件 CDN 載入 (避免在內文使用 import 語法) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-
 </head>
 <body>
   
   <div id="root"></div>
 
-  <!-- 改用標準 text/babel 載入 -->
   <script type="text/babel">
-    import React, { useState, useMemo, useEffect } from "https://esm.sh/react@18";
-    import { createRoot } from "https://esm.sh/react-dom@18/client";
-    import { Plane, Building2, MapPin, ArrowLeft, Calendar, ChevronRight, Stamp, Globe2, ZoomIn, ZoomOut, LogOut } from "https://esm.sh/lucide-react@0.292.0";
-    import * as d3 from "https://esm.sh/d3@7";
+    const { useState, useMemo, useEffect } = React;
 
     // ==========================================
     // 🔑 請在這裡貼上你的 Firebase 金鑰
     // ==========================================
   const firebaseConfig = {
-  apiKey: "AIzaSyB5FGDc4XhkK5cBmo-2Z4NeH3mngyMGR3Y",
-  authDomain: "travelaroundtheworld-2f0d0.firebaseapp.com",
-  projectId: "travelaroundtheworld-2f0d0",
-  storageBucket: "travelaroundtheworld-2f0d0.firebasestorage.app",
-  messagingSenderId: "264791845966",
-  appId: "1:264791845966:web:4286b72d807e8c4391271f",
-  measurementId: "G-ZLT6LS3J5W"
-};
+      apiKey: "AIzaSyC75QvUqKgPusS1z7uYOQrKg38VajDRc80",
+    authDomain: "englishnote-c2462.firebaseapp.com",
+    projectId: "englishnote-c2462",
+    storageBucket: "englishnote-c2462.firebasestorage.app",
+    messagingSenderId: "727644589126",
+    appId: "1:727644589126:web:5e5e1deed9ca691afa0e47",
+    measurementId: "G-BYHGCY6TXD"
+    };
 
-   // 初始化 Firebase (Compat 相容模式)
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -146,8 +146,7 @@
         <div className="tj-map-wrap">
           <div className="tj-map-toolbar">
             <button className="tj-zoom-btn" onClick={() => setZoomed((z) => !z)}>
-              {zoomed ? <ZoomOut size={14} /> : <ZoomIn size={14} />}
-              {zoomed ? "顯示世界地圖" : "聚焦東亞"}
+              {zoomed ? "🔍 顯示世界地圖" : "🔍 聚焦東亞"}
             </button>
           </div>
           <svg className="tj-map-svg" viewBox={zoomed && asiaViewBox && status === "ready" ? asiaViewBox : `0 0 ${MAP_W} ${MAP_H}`}>
@@ -195,8 +194,7 @@
       if (!user) {
         return (
           <div className="tj-login-screen">
-            <Stamp size={48} color="#A8412F" />
-            <h1 style={{ fontFamily: "'Fraunces', serif" }}>旅行手記</h1>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 36 }}>✈️ 旅行手記</h1>
             <p style={{ color: "#6B6455" }}>請登入以存取您的私人旅遊紀錄</p>
             <button className="tj-login-btn" onClick={handleLogin}>
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{width: 18}}/>
@@ -231,9 +229,8 @@
         <div className="tj-root">
           <div className="tj-header">
             <div className="tj-brand">
-              <Stamp size={22} />
               <div>
-                <div className="tj-brand-title">旅行手記</div>
+                <div className="tj-brand-title">✈️ 旅行手記</div>
                 <div className="tj-brand-sub">TRAVEL JOURNAL</div>
               </div>
             </div>
@@ -241,20 +238,20 @@
             <div className="tj-user-profile">
               <img src={user.photoURL} alt="Avatar" className="tj-user-avatar" referrerPolicy="no-referrer" />
               <span>{user.displayName}</span>
-              <LogOut size={16} style={{ cursor: 'pointer', marginLeft: 8 }} onClick={onLogout} title="登出" />
+              <button onClick={onLogout} style={{ border: 'none', background: 'transparent', color: '#F7F3EA', cursor: 'pointer', marginLeft: 8 }}>登出</button>
             </div>
           </div>
 
           <div className="tj-nav">
-            <div className={`tj-nav-item ${tab === "map" ? "active" : ""}`} onClick={() => setTab("map")}><Globe2 size={15} /> 地圖</div>
-            <div className={`tj-nav-item ${tab === "trips" || tab === "detail" ? "active" : ""}`} onClick={() => { setFilterKey(null); setTab("trips"); }}><Plane size={15} /> 行程紀錄</div>
+            <div className={`tj-nav-item ${tab === "map" ? "active" : ""}`} onClick={() => setTab("map")}>🌐 地圖</div>
+            <div className={`tj-nav-item ${tab === "trips" || tab === "detail" ? "active" : ""}`} onClick={() => { setFilterKey(null); setTab("trips"); }}>✈️ 行程紀錄</div>
           </div>
 
           <div className="tj-body">
             {tab === "map" && (
               <>
                 <WorldMap onSelectCountry={(key) => { setFilterKey(key); setTab("trips"); }} />
-                <div className="tj-section-title"><MapPin size={19} /> 最新紀錄</div>
+                <div className="tj-section-title">📍 最新紀錄</div>
                 <div className="tj-trip-list">
                   {tripsState.slice(0, 2).map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} />)}
                 </div>
@@ -263,10 +260,8 @@
 
             {tab === "trips" && (
               <>
-                <div className="tj-section-title">
-                  <Plane size={19} /> 所有行程紀錄
-                </div>
-                {filterKey && <div className="tj-back" onClick={() => setFilterKey(null)}><ArrowLeft size={15} /> 清除篩選，顯示全部</div>}
+                <div className="tj-section-title">✈️ 所有行程紀錄</div>
+                {filterKey && <div className="tj-back" onClick={() => setFilterKey(null)}>← 清除篩選，顯示全部</div>}
                 <div className="tj-trip-list">
                   {filteredTrips.map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} />)}
                 </div>
@@ -291,13 +286,13 @@
             </div>
             <div className="tj-ticket-title">{trip.title}</div>
             <div className="tj-ticket-meta">
-              <span><Calendar size={12} /> {trip.dateRange}</span>
+              <span>📅 {trip.dateRange}</span>
               <span>{trip.days?.length || 0} 天</span>
             </div>
           </div>
           <div className="tj-ticket-stub">
             <div className="tj-ticket-route">{trip.route}</div>
-            <ChevronRight size={16} />
+            <div>＞</div>
           </div>
         </div>
       );
@@ -322,7 +317,7 @@
 
       return (
         <div>
-          <div className="tj-back" onClick={onBack}><ArrowLeft size={15} /> 返回列表</div>
+          <div className="tj-back" onClick={onBack}>← 返回列表</div>
           <div className="tj-detail-title">{trip.title}</div>
           <div className="tj-detail-sub">{trip.dateRange} ・ {trip.route}</div>
 
@@ -352,7 +347,7 @@
       );
     }
 
-    const root = createRoot(document.getElementById("root"));
+    const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(<App />);
   </script>
 </body>
