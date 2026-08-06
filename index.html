@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>旅行手記 Travel Journal</title>
+  
+  <!-- 載入字體 -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+    
+    html, body, #root { height: 100%; margin: 0; padding: 0; }
+    
+    /* 這裡放你原本的 CSS */
+    .tj-root {
+      --paper: #F7F3EA; --card: #FFFEFA; --ink: #2A2620; --ink-soft: #6B6455;
+      --navy: #1E3A5F; --navy-deep: #13253B; --stamp: #A8412F; --teal: #3E6259; --line: #E1D8C4;
+      font-family: 'Work Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100%;
+    }
+    .tj-root * { box-sizing: border-box; }
+    .tj-header { display:flex; align-items:center; justify-content:space-between; padding:22px 28px; border-bottom:1px solid var(--line); background:var(--navy); color:#F7F3EA; }
+    .tj-brand { display:flex; align-items:center; gap:10px; }
+    .tj-brand-title { font-family:'Fraunces', serif; font-size:20px; font-weight:600; }
+    .tj-brand-sub { font-family:'IBM Plex Mono', monospace; font-size:11px; opacity:0.7; letter-spacing:1px; }
+    .tj-share-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; font-family:'IBM Plex Mono', monospace; font-size:12px; background:rgba(255,255,255,0.08); padding:7px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.2); }
+    .tj-share-toggle.active { background:var(--stamp); border-color:var(--stamp); }
+    .tj-banner { background:var(--stamp); color:#fff; text-align:center; padding:7px; font-family:'IBM Plex Mono', monospace; font-size:12px; }
+    .tj-nav { display:flex; gap:4px; padding:14px 28px 0; border-bottom:1px solid var(--line); }
+    .tj-nav-item { padding:10px 18px; cursor:pointer; font-size:14px; font-weight:500; color:var(--ink-soft); border-bottom:2px solid transparent; display:flex; align-items:center; gap:6px; }
+    .tj-nav-item.active { color:var(--navy); border-color:var(--stamp); font-weight:600; }
+    .tj-body { padding:28px; max-width:980px; margin:0 auto; }
+    .tj-map-wrap { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; position:relative; }
+    .tj-map-toolbar { display:flex; justify-content:flex-end; align-items:center; gap:10px; margin-bottom:8px; }
+    .tj-map-status { font-size:11px; color:var(--ink-soft); font-family:'IBM Plex Mono', monospace; }
+    .tj-zoom-btn { display:flex; align-items:center; gap:6px; background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; color:var(--navy); font-family:'IBM Plex Mono', monospace; }
+    .tj-map-svg { width:100%; height:auto; display:block; border-radius:8px; }
+    .tj-ocean { fill:#EEF1EC; }
+    .tj-land { fill:#CDD8C4; stroke:#B7C4AC; stroke-width:0.6; }
+    .tj-pin-group { cursor:pointer; }
+    .tj-pin-ring { fill:none; stroke:var(--stamp); stroke-width:1.4; opacity:0.5; }
+    .tj-pin-dot { fill:var(--stamp); stroke:var(--card); stroke-width:1.6; }
+    .tj-pin-label { font-family:'IBM Plex Mono', monospace; font-size:9px; fill:var(--navy-deep); font-weight:600; }
+    .tj-section-title { font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:28px 0 14px; display:flex; align-items:center; gap:10px; }
+    .tj-trip-list { display:grid; gap:14px; }
+    .tj-ticket { display:flex; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; }
+    .tj-ticket-main { flex:1; padding:16px 20px; }
+    .tj-ticket-top { display:flex; justify-content:space-between; align-items:baseline; }
+    .tj-ticket-city { font-family:'Fraunces', serif; font-size:19px; font-weight:600; }
+    .tj-ticket-status { font-family:'IBM Plex Mono', monospace; font-size:10px; padding:3px 9px; border-radius:12px; }
+    .tj-ticket-status.completed { background:#E7EEE9; color:var(--teal); }
+    .tj-ticket-status.planned { background:#EDEEF2; color:var(--navy); }
+    .tj-ticket-title { color:var(--ink-soft); font-size:13px; margin-top:2px; }
+    .tj-ticket-meta { display:flex; gap:16px; margin-top:12px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); }
+    .tj-ticket-stub { width:100px; background:var(--navy); color:#F7F3EA; display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:2px dashed rgba(247,243,234,0.35); font-family:'IBM Plex Mono', monospace; font-size:11px; gap:4px; padding:10px; }
+    .tj-ticket-route { font-size:13px; font-weight:600; }
+    .tj-back { display:flex; align-items:center; gap:6px; color:var(--navy); cursor:pointer; font-size:14px; margin-bottom:16px; }
+    .tj-detail-title { font-family:'Fraunces', serif; font-size:28px; font-weight:600; }
+    .tj-detail-sub { font-family:'IBM Plex Mono', monospace; color:var(--ink-soft); font-size:13px; margin-top:6px; }
+    .tj-panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin-bottom:16px; }
+    .tj-panel-title { display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; margin-bottom:12px; color:var(--navy); }
+    .tj-daytabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+    .tj-daytab { padding:8px 14px; border-radius:8px; background:var(--paper); border:1px solid var(--line); cursor:pointer; font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); }
+    .tj-daytab.active { background:var(--navy); color:#F7F3EA; border-color:var(--navy); }
+    .tj-notes { font-size:14px; line-height:1.8; color:var(--ink); white-space:pre-wrap; }
+    .tj-notes-input { width:100%; min-height:80px; border:1px solid var(--line); border-radius:8px; padding:10px; font-family:'Work Sans', sans-serif; font-size:14px; line-height:1.7; resize:vertical; background:var(--paper); color:var(--ink); }
+    .tj-photos { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:10px; margin-top:12px; }
+    .tj-photo { border-radius:8px; overflow:hidden; aspect-ratio:4/3; border:1px solid var(--line); }
+    .tj-photo img { width:100%; height:100%; object-fit:cover; }
+    .tj-photo-add { display:flex; align-items:center; justify-content:center; border:1.5px dashed var(--line); border-radius:8px; aspect-ratio:4/3; color:var(--ink-soft); font-size:12px; cursor:pointer; flex-direction:column; gap:4px; }
+    .tj-exp-total { background:var(--navy); color:#F7F3EA; border-radius:10px; padding:14px 18px; min-width:160px; }
+    .tj-exp-form { display:grid; grid-template-columns: 1fr 1fr 80px; gap:8px; margin-top:14px; }
+    .tj-exp-form input { border:1px solid var(--line); border-radius:6px; padding:7px 8px; font-size:12px; font-family:'Work Sans', sans-serif; }
+    .tj-exp-form button { background:var(--stamp); color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer; }
+  </style>
+
+  <!-- 引入 Babel 來讓瀏覽器看得懂 React -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  
+  <div id="root"></div>
+
+  <!-- 注意這裡的 type 是 text/babel，並且指定 data-type="module" 以便載入外部套件 -->
+  <script type="text/babel" data-type="module">
+    import React, { useState, useMemo, useEffect } from "https://esm.sh/react@18";
+    import { createRoot } from "https://esm.sh/react-dom@18/client";
+    import {
+      Plane, Building2, MapPin, Camera, ArrowLeft, Share2, Lock, Star, Calendar,
+      ChevronRight, Stamp, Globe2, Car, Utensils, Wallet, Plus, Minus, ZoomIn, ZoomOut, Upload
+    } from "https://esm.sh/lucide-react@0.292.0";
+    import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "https://esm.sh/recharts@2";
+    import * as d3 from "https://esm.sh/d3@7";
+    
+    // 引入 Firebase
+    import { initializeApp } from "https://esm.sh/firebase@10.8.1/app";
+    import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc } from "https://esm.sh/firebase@10.8.1/firestore";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://esm.sh/firebase@10.8.1/storage";
+
+    // ==========================================
+    // 這裡就是你的 Firebase 設定區 (現在空著沒關係)
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "", // 等你有空再填入
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    // 檢查是否有填寫 Firebase 金鑰
+    const isFirebaseReady = firebaseConfig.apiKey !== "";
+    
+    // 初始化 Firebase (如果有填寫的話)
+    let db, storage;
+    if (isFirebaseReady) {
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      storage = getStorage(app);
+    }
+
+    // 地圖與基礎設定
+    const MAP_W = 900, MAP_H = 460;
+    const WORLD_GEOJSON_URL = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
+    const MAP_PINS = [
+      { key: "JP", label: "日本", lat: 36.5, lon: 138, count: 2 },
+      { key: "KR", label: "韓國", lat: 37.5, lon: 127.5, count: 1 },
+      { key: "TW", label: "台灣", lat: 23.7, lon: 121, count: 1 },
+    ];
+
+    function WorldMap({ onSelectCountry }) {
+      const [zoomed, setZoomed] = useState(true);
+      const [worldGeo, setWorldGeo] = useState(null);
+      const [status, setStatus] = useState("loading");
+
+      useEffect(() => {
+        fetch(WORLD_GEOJSON_URL)
+          .then((r) => r.json())
+          .then((data) => { setWorldGeo(data); setStatus("ready"); })
+          .catch(() => setStatus("error"));
+      }, []);
+
+      const projection = useMemo(() => {
+        if (!worldGeo) return null;
+        return d3.geoEquirectangular().fitExtent([[8, 8], [MAP_W - 8, MAP_H - 8]], worldGeo);
+      }, [worldGeo]);
+
+      const pathGen = useMemo(() => (projection ? d3.geoPath(projection) : null), [projection]);
+
+      const pinPoints = useMemo(() => {
+        if (!projection) return {};
+        const map = {};
+        MAP_PINS.forEach((p) => { map[p.key] = projection([p.lon, p.lat]); });
+        return map;
+      }, [projection]);
+
+      const asiaViewBox = useMemo(() => {
+        if (!projection) return null;
+        const pts = MAP_PINS.map((p) => pinPoints[p.key]).filter(Boolean);
+        if (pts.length === 0) return null;
+        const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+        const minX = Math.min(...xs) - 75, maxX = Math.max(...xs) + 75;
+        const minY = Math.min(...ys) - 75, maxY = Math.max(...ys) + 75;
+        return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
+      }, [projection, pinPoints]);
+
+      return (
+        <div className="tj-map-wrap">
+          <div className="tj-map-toolbar">
+            {status === "loading" && <span className="tj-map-status">載入地圖資數據中…</span>}
+            <button className="tj-zoom-btn" onClick={() => setZoomed((z) => !z)}>
+              {zoomed ? <ZoomOut size={14} /> : <ZoomIn size={14} />}
+              {zoomed ? "顯示世界地圖" : "聚焦東亞"}
+            </button>
+          </div>
+          <svg className="tj-map-svg" viewBox={zoomed && asiaViewBox && status === "ready" ? asiaViewBox : `0 0 ${MAP_W} ${MAP_H}`}>
+            <rect x="-9999" y="-9999" width="19998" height="19998" className="tj-ocean" />
+            {status === "ready" && worldGeo.features.map((f, i) => (
+              <path key={i} d={pathGen(f)} className="tj-land" />
+            ))}
+            {status === "ready" && MAP_PINS.map((p) => {
+              const pt = pinPoints[p.key];
+              if (!pt) return null;
+              return (
+                <g key={p.key} className="tj-pin-group" transform={`translate(${pt[0]}, ${pt[1]})`} onClick={() => onSelectCountry(p.key)}>
+                  <circle r={7 + p.count * 2.2} className="tj-pin-ring" />
+                  <circle r="4.5" className="tj-pin-dot" />
+                  <text x="10" y="4" className="tj-pin-label">{p.label}</text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      );
+    }
+
+    // 假資料：避免你一開始上傳時畫面全白
+    const FAKE_TRIPS = [
+      {
+        id: "t1", status: "completed", countryKey: "JP", city: "東京",
+        title: "東京・初秋賞楓行 (範例資料)", dateRange: "2025.11.02 – 2025.11.06", route: "TPE → NRT", currency: "JPY",
+        days: [{ day: 1, date: "11.02", notes: "這是範例資料！等你接好 Firebase 後，就可以新增自己的文字與照片囉。", photos: ["https://picsum.photos/seed/tokyo/400/300"] }],
+        expenses: [{ id: "e1", day: 1, item: "成田特快", amount: 3070, currency: "JPY" }]
+      }
+    ];
+
+    function TravelJournal() {
+      const [tab, setTab] = useState("map");
+      const [selectedId, setSelectedId] = useState(null);
+      const [shareMode, setShareMode] = useState(false);
+      const [filterKey, setFilterKey] = useState(null);
+      const [tripsState, setTripsState] = useState([]);
+
+      useEffect(() => {
+        if (!isFirebaseReady) {
+          // 如果還沒設定 Firebase，先塞入假資料讓網頁跑起來
+          setTripsState(FAKE_TRIPS);
+          return;
+        }
+        // 如果有 Firebase，就啟動即時監聽
+        const unsub = onSnapshot(collection(db, "trips"), (snapshot) => {
+          const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          setTripsState(docs);
+        });
+        return () => unsub();
+      }, []);
+
+      const selectedTrip = useMemo(() => tripsState.find((t) => t.id === selectedId), [selectedId, tripsState]);
+      const filteredTrips = filterKey ? tripsState.filter((t) => t.countryKey === filterKey) : tripsState;
+      const openTrip = (id) => { setSelectedId(id); setTab("detail"); };
+
+      return (
+        <div className="tj-root">
+          <div className="tj-header">
+            <div className="tj-brand">
+              <Stamp size={22} />
+              <div>
+                <div className="tj-brand-title">旅行手記</div>
+                <div className="tj-brand-sub">TRAVEL JOURNAL</div>
+              </div>
+            </div>
+            <div className={`tj-share-toggle ${shareMode ? "active" : ""}`} onClick={() => setShareMode((v) => !v)}>
+              {shareMode ? <Lock size={14} /> : <Share2 size={14} />}
+              {shareMode ? "唯讀分享模式" : "分享唯讀連結"}
+            </div>
+          </div>
+          
+          {!isFirebaseReady && (
+            <div className="tj-banner" style={{background: '#6B6455'}}>
+              提示：目前為展示模式。請在程式碼中填入 Firebase 金鑰即可啟用雲端儲存功能！
+            </div>
+          )}
+
+          <div className="tj-nav">
+            <div className={`tj-nav-item ${tab === "map" ? "active" : ""}`} onClick={() => setTab("map")}><Globe2 size={15} /> 地圖</div>
+            <div className={`tj-nav-item ${tab === "trips" || tab === "detail" ? "active" : ""}`} onClick={() => { setFilterKey(null); setTab("trips"); }}><Plane size={15} /> 行程紀錄</div>
+          </div>
+
+          <div className="tj-body">
+            {tab === "map" && (
+              <>
+                <WorldMap onSelectCountry={(key) => { setFilterKey(key); setTab("trips"); }} />
+                <div className="tj-section-title"><MapPin size={19} /> 最新紀錄</div>
+                <div className="tj-trip-list">
+                  {tripsState.slice(0, 2).map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} />)}
+                </div>
+              </>
+            )}
+
+            {tab === "trips" && (
+              <>
+                <div className="tj-section-title">
+                  <Plane size={19} /> 所有行程紀錄
+                </div>
+                {filterKey && <div className="tj-back" onClick={() => setFilterKey(null)}><ArrowLeft size={15} /> 清除篩選，顯示全部</div>}
+                <div className="tj-trip-list">
+                  {filteredTrips.map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} />)}
+                </div>
+              </>
+            )}
+
+            {tab === "detail" && selectedTrip && (
+              <TripDetail trip={selectedTrip} shareMode={shareMode} onBack={() => setTab("trips")} isFirebaseReady={isFirebaseReady} />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function TripCard({ trip, onClick }) {
+      return (
+        <div className="tj-ticket" onClick={onClick}>
+          <div className="tj-ticket-main">
+            <div className="tj-ticket-top">
+              <span className="tj-ticket-city">{trip.city}</span>
+              <span className={`tj-ticket-status ${trip.status}`}>{trip.status === "completed" ? "已完成" : "計畫中"}</span>
+            </div>
+            <div className="tj-ticket-title">{trip.title}</div>
+            <div className="tj-ticket-meta">
+              <span><Calendar size={12} /> {trip.dateRange}</span>
+              <span>{trip.days?.length || 0} 天</span>
+            </div>
+          </div>
+          <div className="tj-ticket-stub">
+            <div className="tj-ticket-route">{trip.route}</div>
+            <ChevronRight size={16} />
+          </div>
+        </div>
+      );
+    }
+
+    function TripDetail({ trip, shareMode, onBack, isFirebaseReady }) {
+      const [activeDay, setActiveDay] = useState(1);
+      const [uploading, setUploading] = useState(false);
+      const [tempNote, setTempNote] = useState("");
+      
+      const day = trip.days?.find((d) => d.day === activeDay) || trip.days?.[0];
+
+      // 同步輸入框
+      useEffect(() => { setTempNote(day?.notes || ""); }, [activeDay, day]);
+
+      const handleNoteSave = async () => {
+        if (!isFirebaseReady) return alert("要連接 Firebase 才能儲存修改喔！");
+        const updatedDays = trip.days.map((d) => (d.day === activeDay ? { ...d, notes: tempNote } : d));
+        await updateDoc(doc(db, "trips", trip.id), { days: updatedDays });
+      };
+
+      const handlePhotoUpload = async (e) => {
+        if (!isFirebaseReady) return alert("要連接 Firebase 才能上傳圖片喔！");
+        const file = e.target.files[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+          const storageRef = ref(storage, `trips/${trip.id}/${Date.now()}_${file.name}`);
+          await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(storageRef);
+          const updatedDays = trip.days.map((d) => d.day === activeDay ? { ...d, photos: [...(d.photos || []), url] } : d);
+          await updateDoc(doc(db, "trips", trip.id), { days: updatedDays });
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setUploading(false);
+        }
+      };
+
+      return (
+        <div>
+          <div className="tj-back" onClick={onBack}><ArrowLeft size={15} /> 返回列表</div>
+          <div className="tj-detail-title">{trip.title}</div>
+          <div className="tj-detail-sub">{trip.dateRange} ・ {trip.route}</div>
+
+          <div className="tj-panel" style={{ marginTop: 20 }}>
+            <div className="tj-daytabs">
+              {(trip.days || []).map((d) => (
+                <div key={d.day} className={`tj-daytab ${d.day === activeDay ? "active" : ""}`} onClick={() => setActiveDay(d.day)}>
+                  DAY {d.day}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <div className="tj-panel-title">✒ DAY {activeDay} 心得筆記</div>
+              {shareMode ? (
+                <div className="tj-notes">{day?.notes || "無內容"}</div>
+              ) : (
+                <>
+                  <textarea className="tj-notes-input" value={tempNote} onChange={(e) => setTempNote(e.target.value)} />
+                  {isFirebaseReady && <button onClick={handleNoteSave} style={{marginTop: 8, padding: "6px 12px"}}>儲存心得</button>}
+                </>
+              )}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <div className="tj-panel-title"><Camera size={14} /> DAY {activeDay} 照片</div>
+              <div className="tj-photos">
+                {(day?.photos || []).map((url, i) => (
+                  <div className="tj-photo" key={i}><img src={url} alt="Travel photo" /></div>
+                ))}
+                {!shareMode && (
+                  <label className="tj-photo-add">
+                    <Upload size={18} />
+                    {uploading ? "上傳中..." : "新增照片"}
+                    <input type="file" accept="image/*" hidden onChange={handlePhotoUpload} disabled={uploading} />
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 將 React 應用程式掛載到畫面上
+    const root = createRoot(document.getElementById("root"));
+    root.render(<TravelJournal />);
+  </script>
+</body>
+</html>
