@@ -37,17 +37,16 @@
     .tj-pin-ring { fill:none; stroke:var(--stamp); stroke-width:1.4; opacity:0.5; }
     .tj-pin-dot { fill:var(--stamp); stroke:var(--card); stroke-width:1.6; }
     
-    /* 文字樣式優化：加白色描邊襯底，字體居中於點下方 */
+    /* 文字優化：加入抗鋸齒與襯底 */
     .tj-pin-label {
       font-family: 'IBM Plex Mono', sans-serif;
       fill: var(--navy-deep);
       font-weight: 600;
-      text-anchor: middle;
       paint-order: stroke fill;
       stroke: #FFFEFA;
-      stroke-width: 2.5px;
       stroke-linecap: round;
       stroke-linejoin: round;
+      pointer-events: none;
     }
 
     .tj-section-title { font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:28px 0 14px; display:flex; align-items:center; justify-content:space-between; }
@@ -286,15 +285,32 @@
             {status === "ready" && activePins.map((p) => {
               const pt = pinPoints[p.key];
               if (!pt) return null;
+
+              // 精細錯位計算：避免鄰近國家撞字
+              let textAnchor = "middle";
+              let dx = 0;
+              let dy = zoomed ? 10 : 16;
+
+              if (p.key === "KR") {
+                textAnchor = "end"; // 韓國往左下延伸
+                dx = zoomed ? -6 : -10;
+                dy = zoomed ? 8 : 12;
+              } else if (p.key === "JP") {
+                textAnchor = "start"; // 日本往右上延伸
+                dx = zoomed ? 6 : 10;
+                dy = zoomed ? -2 : -4;
+              }
+
               return (
                 <g key={p.key} className="tj-pin-group" transform={`translate(${pt[0]}, ${pt[1]})`} onClick={() => onSelectCountry(p.key)}>
-                  <circle r={7 + p.count * 2} className="tj-pin-ring" />
-                  <circle r="4.5" className="tj-pin-dot" />
-                  {/* 將文字放點下方，並根據聚焦縮放自動微調字體大小 */}
+                  <circle r={zoomed ? 4 : 7 + p.count * 1.5} className="tj-pin-ring" />
+                  <circle r={zoomed ? 2.5 : 4.5} className="tj-pin-dot" />
                   <text 
-                    x="0" 
-                    y={zoomed ? 12 : 16} 
-                    fontSize={zoomed ? 8 : 10} 
+                    x={dx} 
+                    y={dy} 
+                    textAnchor={textAnchor}
+                    fontSize={zoomed ? 6 : 10}
+                    strokeWidth={zoomed ? "1.5px" : "2.5px"}
                     className="tj-pin-label"
                   >
                     {p.label}·{p.count}趟
