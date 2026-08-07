@@ -172,13 +172,11 @@
     }
   </style>
 
-  <!-- 全域套件 CDN 載入 -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
@@ -419,7 +417,8 @@
       const [showAddModal, setShowAddModal] = React.useState(false);
       const [editingTrip, setEditingTrip] = React.useState(null);
 
-      const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD 格式供預設日期
+      // 當天日期預設值
+      const todayStr = new Date().toISOString().split("T")[0];
 
       const [newTrip, setNewTrip] = React.useState({
         title: "", city: "", countryKey: "JP", status: "planned", year: String(CURRENT_YEAR), startDate: todayStr, dateRange: "", route: "", dayCount: 3, currency: "JPY"
@@ -429,6 +428,7 @@
         const unsub = db.collection("trips").onSnapshot((snapshot) => {
           const docs = snapshot.docs.map((doc) => {
             const data = doc.data();
+            // 自動修復：如果沒有填寫年度，就看 startDate，再沒有預設給今年
             const yearVal = data.year || (data.startDate ? data.startDate.split("-")[0] : String(CURRENT_YEAR));
             return { 
               id: doc.id, 
@@ -442,20 +442,36 @@
         return () => unsub();
       }, []);
 
-      // 🛡️ 動態計算選單年度：自動計算 [2020 ~ 未來1年] 加上所有資料庫曾出現過的年份 (永不流失)
+      // 🛡️ 動態產生年度選單：包含 [2020 ~ 未來一年] 加上所有資料庫曾出現的歷史年度
       const dynamicYears = React.useMemo(() => {
-        const yearSet = new Set(["2020", String(CURRENT_YEAR), String(CURRENT_YEAR + 1)]);
+        const yearSet = new Set();
+        // 基本盤：從未來一年到 2020 年
+        for (let y = CURRENT_YEAR + 1; y >= 2020; y--) {
+          yearSet.add(String(y));
+        }
+        // 加上資料庫存在的其他舊年度 (永不流失)
         tripsState.forEach(t => { if (t.year) yearSet.add(String(t.year)); });
+        
+        // 排序後回傳
         const sorted = Array.from(yearSet).map(Number).sort((a, b) => b - a).map(String);
         return ["全部", ...sorted];
       }, [tripsState]);
 
-      // 排序函式：根據 startDate (出發日期) 由新到舊排序 (近的在前面)
+      // 🔄 精準日期排序函式 (新到舊降冪排列)
       const sortTripsByDate = React.useCallback((list) => {
         return [...list].sort((a, b) => {
+          // 抓取出發日期，若無出發日期則以年份保底
           const dateA = a.startDate || `${a.year || "2000"}-01-01`;
           const dateB = b.startDate || `${b.year || "2000"}-01-01`;
-          return dateB.localeCompare(dateA); // 最新日期排在最前面
+          
+          if (dateA === dateB) {
+            // 如果日期完全一樣，依建立時間排序，避免畫面亂跳
+            const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+            const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+            return timeB - timeA;
+          }
+          // 降冪排序 (最新的在前面)
+          return dateB.localeCompare(dateA); 
         });
       }, []);
 
@@ -484,7 +500,6 @@
           daysArr.push({ day: i, date: "", items: [], notes: "" });
         }
 
-        // 自動從 startDate 拆出年度，保持邏輯一緻
         const calculatedYear = newTrip.startDate ? newTrip.startDate.split("-")[0] : (newTrip.year || String(CURRENT_YEAR));
 
         await db.collection("trips").add({
@@ -508,7 +523,6 @@
         setNewTrip({ title: "", city: "", countryKey: "JP", status: "planned", year: String(CURRENT_YEAR), startDate: todayStr, dateRange: "", route: "", dayCount: 3, currency: "JPY" });
       };
 
-      // 📋 行程 100% 全複製
       const handleCopyTrip = async (tripToCopy, e) => {
         e.stopPropagation();
         if (!confirm(`確定要完整複製「${tripToCopy.title}」（包含行程明細、機票、住宿與費用）嗎？`)) return;
@@ -566,6 +580,22 @@
         }
       };
 
+      // 共用的表單年度選單渲染 (包含手動自訂)
+      const renderYearSelect = (currentValue, onChangeFn) => (
+        <select value={currentValue} onChange={(e) => {
+          if (e.target.value === "custom") {
+            const inputY = prompt("請輸入欲新增的年度 (例如: 2028)");
+            if (inputY && !isNaN(inputY)) onChangeFn(inputY);
+          } else {
+            onChangeFn(e.target.value);
+          }
+        }}>
+          {dynamicYears.filter(y => y !== "全部").map(y => <option key={y} value={y}>{y} 年</option>)}
+          {!dynamicYears.includes(currentValue) && <option value={currentValue}>{currentValue} 年</option>}
+          <option value="custom">➕ 自訂其他年度</option>
+        </select>
+      );
+
       return (
         <div className="tj-root">
           <div className="tj-header">
@@ -610,7 +640,6 @@
                   <span>✈️ {filterKey ? `${COUNTRY_DICT[filterKey]?.label || filterKey} 的行程` : "國外行程紀錄"}</span>
                 </div>
 
-                {/* 動態永不流失年度選單 */}
                 <div className="tj-year-bar">
                   <span className="tj-year-label">🗓️ 年度：</span>
                   {dynamicYears.map(y => (
@@ -634,7 +663,6 @@
                   <span>🇹🇼 台灣本土行程紀錄</span>
                 </div>
 
-                {/* 動態永不流失年度選單 */}
                 <div className="tj-year-bar">
                   <span className="tj-year-label">🗓️ 年度：</span>
                   {dynamicYears.map(y => (
@@ -661,7 +689,6 @@
             )}
           </div>
 
-          {/* 新增行程 Modal (含精準日期選擇器) */}
           {showAddModal && (
             <div className="tj-modal-overlay">
               <div className="tj-modal">
@@ -685,9 +712,7 @@
                   </div>
                   <div className="tj-form-group">
                     <label>行程年份</label>
-                    <select value={newTrip.year} onChange={(e) => setNewTrip({...newTrip, year: e.target.value})}>
-                      {dynamicYears.filter(y => y !== "全部").map(y => <option key={y} value={y}>{y} 年</option>)}
-                    </select>
+                    {renderYearSelect(newTrip.year, (val) => setNewTrip({...newTrip, year: val}))}
                   </div>
                   <div className="tj-form-group">
                     <label>國家地區</label>
@@ -735,7 +760,6 @@
             </div>
           )}
 
-          {/* 編輯 Modal */}
           {editingTrip && (
             <div className="tj-modal-overlay">
               <div className="tj-modal">
@@ -759,9 +783,7 @@
                   </div>
                   <div className="tj-form-group">
                     <label>行程年份</label>
-                    <select value={editingTrip.year || String(CURRENT_YEAR)} onChange={(e) => setEditingTrip({...editingTrip, year: e.target.value})}>
-                      {dynamicYears.filter(y => y !== "全部").map(y => <option key={y} value={y}>{y} 年</option>)}
-                    </select>
+                    {renderYearSelect(editingTrip.year, (val) => setEditingTrip({...editingTrip, year: val}))}
                   </div>
                   <div className="tj-form-group">
                     <label>國家地區</label>
