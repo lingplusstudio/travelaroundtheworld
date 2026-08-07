@@ -64,7 +64,7 @@
     .tj-user-avatar { width: 28px; height: 28px; border-radius: 50%; }
   </style>
 
-  <!-- 全域套件 CDN 載入 (避免在內文使用 import 語法) -->
+  <!-- 全域套件 CDN 載入 -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -80,21 +80,18 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useMemo, useEffect } = React;
+    // 1. 金鑰設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyB5FGDc4XhkK5cBmo-2Z4NeH3mngyMGR3Y",
+      authDomain: "travelaroundtheworld-2f0d0.firebaseapp.com",
+      projectId: "travelaroundtheworld-2f0d0",
+      storageBucket: "travelaroundtheworld-2f0d0.firebasestorage.app",
+      messagingSenderId: "264791845966",
+      appId: "1:264791845966:web:4286b72d807e8c4391271f",
+      measurementId: "G-ZLT6LS3J5W"
+    };
 
-    // ==========================================
-    // 🔑 請在這裡貼上你的 Firebase 金鑰
-    // ==========================================
-  const firebaseConfig = {
-   apiKey: "AIzaSyB5FGDc4XhkK5cBmo-2Z4NeH3mngyMGR3Y",
-  authDomain: "travelaroundtheworld-2f0d0.firebaseapp.com",
-  projectId: "travelaroundtheworld-2f0d0",
-  storageBucket: "travelaroundtheworld-2f0d0.firebasestorage.app",
-  messagingSenderId: "264791845966",
-  appId: "1:264791845966:web:4286b72d807e8c4391271f",
-  measurementId: "G-ZLT6LS3J5W"
-    };
-
+    // 2. 初始化 Firebase
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -110,29 +107,29 @@
     ];
 
     function WorldMap({ onSelectCountry }) {
-      const [zoomed, setZoomed] = useState(true);
-      const [worldGeo, setWorldGeo] = useState(null);
-      const [status, setStatus] = useState("loading");
+      const [zoomed, setZoomed] = React.useState(true);
+      const [worldGeo, setWorldGeo] = React.useState(null);
+      const [status, setStatus] = React.useState("loading");
 
-      useEffect(() => {
+      React.useEffect(() => {
         fetch(WORLD_GEOJSON_URL).then((r) => r.json()).then((data) => { setWorldGeo(data); setStatus("ready"); }).catch(() => setStatus("error"));
       }, []);
 
-      const projection = useMemo(() => {
+      const projection = React.useMemo(() => {
         if (!worldGeo) return null;
         return d3.geoEquirectangular().fitExtent([[8, 8], [MAP_W - 8, MAP_H - 8]], worldGeo);
       }, [worldGeo]);
 
-      const pathGen = useMemo(() => (projection ? d3.geoPath(projection) : null), [projection]);
+      const pathGen = React.useMemo(() => (projection ? d3.geoPath(projection) : null), [projection]);
 
-      const pinPoints = useMemo(() => {
+      const pinPoints = React.useMemo(() => {
         if (!projection) return {};
         const map = {};
         MAP_PINS.forEach((p) => { map[p.key] = projection([p.lon, p.lat]); });
         return map;
       }, [projection]);
 
-      const asiaViewBox = useMemo(() => {
+      const asiaViewBox = React.useMemo(() => {
         if (!projection) return null;
         const pts = MAP_PINS.map((p) => pinPoints[p.key]).filter(Boolean);
         if (pts.length === 0) return null;
@@ -171,10 +168,10 @@
     }
 
     function App() {
-      const [user, setUser] = useState(null);
-      const [authChecking, setAuthChecking] = useState(true);
+      const [user, setUser] = React.useState(null);
+      const [authChecking, setAuthChecking] = React.useState(true);
 
-      useEffect(() => {
+      React.useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((currentUser) => {
           setUser(currentUser);
           setAuthChecking(false);
@@ -184,7 +181,10 @@
 
       const handleLogin = () => {
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(err => alert("登入失敗：" + err.message));
+        auth.signInWithPopup(provider).catch(err => {
+          console.error(err);
+          alert("登入失敗：" + err.message);
+        });
       };
 
       const handleLogout = () => auth.signOut();
@@ -208,12 +208,12 @@
     }
 
     function TravelJournal({ user, onLogout }) {
-      const [tab, setTab] = useState("map");
-      const [selectedId, setSelectedId] = useState(null);
-      const [filterKey, setFilterKey] = useState(null);
-      const [tripsState, setTripsState] = useState([]);
+      const [tab, setTab] = React.useState("map");
+      const [selectedId, setSelectedId] = React.useState(null);
+      const [filterKey, setFilterKey] = React.useState(null);
+      const [tripsState, setTripsState] = React.useState([]);
 
-      useEffect(() => {
+      React.useEffect(() => {
         const unsub = db.collection("trips").onSnapshot((snapshot) => {
           const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
           setTripsState(docs);
@@ -221,7 +221,7 @@
         return () => unsub();
       }, []);
 
-      const selectedTrip = useMemo(() => tripsState.find((t) => t.id === selectedId), [selectedId, tripsState]);
+      const selectedTrip = React.useMemo(() => tripsState.find((t) => t.id === selectedId), [selectedId, tripsState]);
       const filteredTrips = filterKey ? tripsState.filter((t) => t.countryKey === filterKey) : tripsState;
       const openTrip = (id) => { setSelectedId(id); setTab("detail"); };
 
@@ -299,13 +299,13 @@
     }
 
     function TripDetail({ trip, onBack }) {
-      const [activeDay, setActiveDay] = useState(1);
-      const [tempNote, setTempNote] = useState("");
-      const [saving, setSaving] = useState(false);
+      const [activeDay, setActiveDay] = React.useState(1);
+      const [tempNote, setTempNote] = React.useState("");
+      const [saving, setSaving] = React.useState(false);
       
       const day = trip.days?.find((d) => d.day === activeDay) || trip.days?.[0];
 
-      useEffect(() => { setTempNote(day?.notes || ""); }, [activeDay, day]);
+      React.useEffect(() => { setTempNote(day?.notes || ""); }, [activeDay, day]);
 
       const handleNoteSave = async () => {
         setSaving(true);
