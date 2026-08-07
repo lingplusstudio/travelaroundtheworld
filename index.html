@@ -36,7 +36,20 @@
     .tj-pin-group { cursor:pointer; }
     .tj-pin-ring { fill:none; stroke:var(--stamp); stroke-width:1.4; opacity:0.5; }
     .tj-pin-dot { fill:var(--stamp); stroke:var(--card); stroke-width:1.6; }
-    .tj-pin-label { font-family:'IBM Plex Mono', monospace; font-size:10px; fill:var(--navy-deep); font-weight:600; }
+    
+    /* 文字樣式優化：加白色描邊襯底，字體居中於點下方 */
+    .tj-pin-label {
+      font-family: 'IBM Plex Mono', sans-serif;
+      fill: var(--navy-deep);
+      font-weight: 600;
+      text-anchor: middle;
+      paint-order: stroke fill;
+      stroke: #FFFEFA;
+      stroke-width: 2.5px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
     .tj-section-title { font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:28px 0 14px; display:flex; align-items:center; justify-content:space-between; }
     .tj-trip-list { display:grid; gap:14px; }
     .tj-ticket { display:flex; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; }
@@ -220,7 +233,6 @@
         fetch(WORLD_GEOJSON_URL).then((r) => r.json()).then((data) => { setWorldGeo(data); setStatus("ready"); }).catch(() => setStatus("error"));
       }, []);
 
-      // 地圖只抓「國外行程 (非 TW)」
       const activePins = React.useMemo(() => {
         const counts = {};
         trips.filter(t => t.countryKey !== "TW").forEach((t) => {
@@ -278,7 +290,15 @@
                 <g key={p.key} className="tj-pin-group" transform={`translate(${pt[0]}, ${pt[1]})`} onClick={() => onSelectCountry(p.key)}>
                   <circle r={7 + p.count * 2} className="tj-pin-ring" />
                   <circle r="4.5" className="tj-pin-dot" />
-                  <text x="10" y="4" className="tj-pin-label">{p.label} · {p.count}趟</text>
+                  {/* 將文字放點下方，並根據聚焦縮放自動微調字體大小 */}
+                  <text 
+                    x="0" 
+                    y={zoomed ? 12 : 16} 
+                    fontSize={zoomed ? 8 : 10} 
+                    className="tj-pin-label"
+                  >
+                    {p.label}·{p.count}趟
+                  </text>
                 </g>
               );
             })}
@@ -325,7 +345,7 @@
     }
 
     function TravelJournal({ user, onLogout }) {
-      const [tab, setTab] = React.useState("map"); // "map" | "foreign" | "tw" | "detail"
+      const [tab, setTab] = React.useState("map");
       const [selectedId, setSelectedId] = React.useState(null);
       const [filterKey, setFilterKey] = React.useState(null);
       const [tripsState, setTripsState] = React.useState([]);
@@ -346,7 +366,6 @@
 
       const selectedTrip = React.useMemo(() => tripsState.find((t) => t.id === selectedId), [selectedId, tripsState]);
       
-      // 分流：台灣行程與國外行程
       const foreignTrips = React.useMemo(() => tripsState.filter(t => t.countryKey !== "TW"), [tripsState]);
       const twTrips = React.useMemo(() => tripsState.filter(t => t.countryKey === "TW"), [tripsState]);
       
@@ -433,7 +452,6 @@
           </div>
 
           <div className="tj-body">
-            {/* 1. 地圖分頁 */}
             {tab === "map" && (
               <>
                 <WorldMap trips={tripsState} onSelectCountry={(key) => { setFilterKey(key); setTab("foreign"); }} />
@@ -445,7 +463,6 @@
               </>
             )}
 
-            {/* 2. 國外行程分頁 */}
             {tab === "foreign" && (
               <>
                 <div className="tj-section-title">
@@ -459,7 +476,6 @@
               </>
             )}
 
-            {/* 3. 台灣行程分頁 */}
             {tab === "tw" && (
               <>
                 <div className="tj-section-title">🇹🇼 台灣本土行程紀錄</div>
@@ -470,7 +486,6 @@
               </>
             )}
 
-            {/* 4. 詳細資料分頁 */}
             {tab === "detail" && selectedTrip && (
               <TripDetail
                 trip={selectedTrip}
@@ -481,7 +496,6 @@
             )}
           </div>
 
-          {/* 新增行程 Modal */}
           {showAddModal && (
             <div className="tj-modal-overlay">
               <div className="tj-modal">
@@ -541,7 +555,6 @@
             </div>
           )}
 
-          {/* 編輯基本資料 Modal */}
           {editingTrip && (
             <div className="tj-modal-overlay">
               <div className="tj-modal">
@@ -834,7 +847,6 @@
           {readMode ? (
             <div className="tj-read-view" style={{ marginTop: 20 }}>
               
-              {/* 1. 機票 / 大眾交通資訊 */}
               <div className="tj-read-section">
                 <div className="tj-read-sec-title">✈️ 航班 / 主要交通資訊</div>
                 {flights.length === 0 && <div className="tj-empty-sm">無交通資料</div>}
@@ -849,7 +861,6 @@
                 ))}
               </div>
 
-              {/* 2. 住宿資訊 */}
               <div className="tj-read-section">
                 <div className="tj-read-sec-title">🏨 住宿資訊</div>
                 {hotels.length === 0 && <div className="tj-empty-sm">無住宿資料</div>}
@@ -864,7 +875,6 @@
                 ))}
               </div>
 
-              {/* 3. 每日行程與心得 */}
               <div className="tj-read-section">
                 <div className="tj-read-sec-title">📅 每日行程與心得</div>
                 {days.map((d) => {
@@ -887,7 +897,6 @@
                 })}
               </div>
 
-              {/* 4. 費用統計 */}
               <div className="tj-read-section">
                 <div className="tj-read-sec-title">💰 費用總覽</div>
                 <ExpenseSummarySection />
@@ -911,7 +920,6 @@
           ) : (
             <div style={{ marginTop: 20 }}>
               
-              {/* 交通／航班編輯區 */}
               <div className="tj-panel">
                 <div className="tj-panel-title">✈️ 航班 / 主要交通</div>
                 {flights.length === 0 && <div className="tj-empty-sm">尚未新增交通資料</div>}
@@ -937,7 +945,6 @@
                 </div>
               </div>
 
-              {/* 住宿編輯區 */}
               <div className="tj-panel">
                 <div className="tj-panel-title">🏨 住宿</div>
                 {hotels.length === 0 && <div className="tj-empty-sm">尚未新增住宿資料</div>}
@@ -963,7 +970,6 @@
                 </div>
               </div>
 
-              {/* 每日行程／心得編輯區 */}
               <div className="tj-panel">
                 <div className="tj-daybar-head">
                   <div className="tj-panel-title" style={{ marginBottom: 0 }}>📅 每日行程 / 心得</div>
@@ -1024,7 +1030,6 @@
                 </div>
               </div>
 
-              {/* 費用管理編輯區 */}
               <div className="tj-panel">
                 <div className="tj-panel-title">💰 費用管理</div>
                 
