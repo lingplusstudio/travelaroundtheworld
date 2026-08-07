@@ -94,7 +94,6 @@
     .tj-day-stepper button:disabled { opacity: 0.35; cursor: not-allowed; }
     .tj-day-count-label { font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); }
 
-    /* 全頁閱覽模式專用樣式 */
     .tj-read-view { display: flex; flex-direction: column; gap: 20px; }
     .tj-read-section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
     .tj-read-sec-title { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; color: var(--navy); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
@@ -109,19 +108,18 @@
     .tj-read-item-note { color: var(--ink-soft); font-size: 13px; margin-left: 4px; }
     .tj-read-notes { margin-top: 10px; font-size: 13px; line-height: 1.7; color: var(--ink); white-space: pre-wrap; background: var(--paper); border-radius: 8px; padding: 12px 14px; border-left: 3px solid var(--navy); }
 
-    .tj-exp-summary { display:flex; gap:14px; margin-bottom:16px; flex-wrap:wrap; align-items:stretch; }
-    .tj-exp-total { background:var(--navy); color:#F7F3EA; border-radius:10px; padding:14px 18px; min-width:150px; }
-    .tj-exp-total-label { font-size:11px; opacity:0.8; font-family:'IBM Plex Mono', monospace; display:flex; justify-content:space-between; align-items:center; gap:8px; }
-    .tj-exp-total-value { font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin-top:4px; }
-    .tj-currency-select { background:rgba(255,255,255,0.14); color:#F7F3EA; border:1px solid rgba(255,255,255,0.35); border-radius:5px; font-size:11px; font-family:'IBM Plex Mono', monospace; padding:2px 4px; }
-    .tj-currency-select option { color: #2A2620; }
-    .tj-bars { flex: 1; min-width: 220px; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
-    .tj-bar-row { display: grid; grid-template-columns: 50px 1fr 60px; align-items: center; gap: 8px; font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
-    .tj-bar-track { background: var(--paper); border-radius: 4px; height: 8px; overflow: hidden; }
+    /* 多幣別獨立框樣式 */
+    .tj-exp-grid { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+    .tj-exp-summary-card { display: flex; gap: 14px; flex-wrap: wrap; align-items: stretch; background: var(--paper); padding: 12px; border-radius: 10px; border: 1px solid var(--line); }
+    .tj-exp-total { background: var(--navy); color: #F7F3EA; border-radius: 8px; padding: 12px 16px; min-width: 140px; display: flex; flex-direction: column; justify-content: center; }
+    .tj-exp-total-label { font-size: 11px; opacity: 0.8; font-family: 'IBM Plex Mono', monospace; }
+    .tj-exp-total-value { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; margin-top: 2px; }
+    .tj-bars { flex: 1; min-width: 200px; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+    .tj-bar-row { display: grid; grid-template-columns: 46px 1fr 65px; align-items: center; gap: 8px; font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
+    .tj-bar-track { background: #E1D8C4; border-radius: 4px; height: 8px; overflow: hidden; }
     .tj-bar-fill { background: var(--stamp); height: 100%; border-radius: 4px; }
-    .tj-tag { font-size:11px; padding:3px 8px; border-radius:10px; color:#fff; display:inline-block; }
-    .tj-exp-amount { font-family:'IBM Plex Mono', monospace; text-align:right; white-space: nowrap; }
-    .tj-exp-amount-sub { display:block; font-size:10px; opacity:0.65; }
+    .tj-tag { font-size: 11px; padding: 3px 8px; border-radius: 10px; color: #fff; display: inline-block; }
+    .tj-exp-amount { font-family: 'IBM Plex Mono', monospace; text-align: right; white-space: nowrap; font-weight: 500; }
 
     .tj-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
     .tj-modal { background: var(--card); border-radius: 12px; padding: 24px; width: 90%; max-width: 480px; border: 1px solid var(--line); max-height: 90vh; overflow-y: auto; }
@@ -190,8 +188,6 @@
     const EXP_CATEGORIES = ["交通", "住宿", "餐飲", "門票", "購物", "其他"];
     const EXP_COLORS = { 交通: "#3E6259", 住宿: "#1E3A5F", 餐飲: "#A8412F", 門票: "#8A6D3B", 購物: "#6B4E71", 其他: "#8A8477" };
     const CURRENCIES = ["TWD", "JPY", "KRW", "USD", "EUR"];
-    const RATE_TO_TWD = { TWD: 1, JPY: 0.21, KRW: 0.023, USD: 31.5, EUR: 34.5 };
-    const convertCurrency = (amount, from, to) => (amount * (RATE_TO_TWD[from] || 1)) / (RATE_TO_TWD[to] || 1);
     const fmtNum = (n) => Math.round(n).toLocaleString();
     const ITEM_TYPES = ["交通", "景點", "餐飲", "住宿"];
     const ITEM_ICONS = { 交通: "🚗", 景點: "📍", 餐飲: "🍽️", 住宿: "🏨" };
@@ -594,7 +590,6 @@
       const [activeDay, setActiveDay] = React.useState(1);
       const [tempNote, setTempNote] = React.useState("");
       const [saving, setSaving] = React.useState(false);
-      const [displayCurrency, setDisplayCurrency] = React.useState(tripCurrency);
       const [readMode, setReadMode] = React.useState(false);
 
       const emptyFlight = { no: "", route: "", date: "", note: "" };
@@ -725,19 +720,58 @@
         if (editExpenseId === id) cancelEditExpense();
       };
 
-      const totalConverted = expenses.reduce((s, e) => s + convertCurrency(e.amount, e.currency, displayCurrency), 0);
-      const byCategory = React.useMemo(() => {
-        const map = {};
+      // 核心邏輯：依幣別自動分群計算（TWD、KRW、JPY...各自成一個小卡片）
+      const expensesByCurrency = React.useMemo(() => {
+        const grouped = {};
         expenses.forEach((e) => {
-          map[e.category] = (map[e.category] || 0) + convertCurrency(e.amount, e.currency, displayCurrency);
+          const curr = e.currency || "TWD";
+          if (!grouped[curr]) {
+            grouped[curr] = { total: 0, categories: {} };
+          }
+          const amt = Number(e.amount) || 0;
+          grouped[curr].total += amt;
+          grouped[curr].categories[e.category] = (grouped[curr].categories[e.category] || 0) + amt;
         });
-        return EXP_CATEGORIES.map((c) => ({ category: c, amount: map[c] || 0 })).filter((c) => c.amount > 0);
-      }, [expenses, displayCurrency]);
-      const maxCategoryAmount = Math.max(1, ...byCategory.map((c) => c.amount));
+        return grouped;
+      }, [expenses]);
 
       const sortedDayItems = (day.items || [])
         .map((it, i) => ({ it, i }))
         .sort((a, b) => parseTimeToMinutes(a.it.time) - parseTimeToMinutes(b.it.time));
+
+      // 元件：多幣別統計區塊 UI
+      const ExpenseSummarySection = () => {
+        const currencies = Object.keys(expensesByCurrency);
+        if (currencies.length === 0) return <div className="tj-empty-sm">還沒有費用紀錄</div>;
+
+        return (
+          <div className="tj-exp-grid">
+            {currencies.map((curr) => {
+              const data = expensesByCurrency[curr];
+              const catList = EXP_CATEGORIES.map((c) => ({ category: c, amount: data.categories[c] || 0 })).filter((c) => c.amount > 0);
+              const maxAmt = Math.max(1, ...catList.map((c) => c.amount));
+
+              return (
+                <div className="tj-exp-summary-card" key={curr}>
+                  <div className="tj-exp-total">
+                    <div className="tj-exp-total-label">{curr} 總計</div>
+                    <div className="tj-exp-total-value">{fmtNum(data.total)} <span style={{fontSize: 12}}>{curr}</span></div>
+                  </div>
+                  <div className="tj-bars">
+                    {catList.map((c) => (
+                      <div className="tj-bar-row" key={c.category}>
+                        <span>{c.category}</span>
+                        <div className="tj-bar-track"><div className="tj-bar-fill" style={{ width: `${(c.amount / maxAmt) * 100}%`, background: EXP_COLORS[c.category] }} /></div>
+                        <span style={{ textAlign: "right" }}>{fmtNum(c.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      };
 
       return (
         <div>
@@ -821,27 +855,7 @@
               {/* 4. 費用統計 */}
               <div className="tj-read-section">
                 <div className="tj-read-sec-title">💰 費用總覽</div>
-                <div className="tj-exp-summary">
-                  <div className="tj-exp-total">
-                    <div className="tj-exp-total-label">
-                      總支出
-                      <select className="tj-currency-select" value={displayCurrency} onChange={(e) => setDisplayCurrency(e.target.value)}>
-                        {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div className="tj-exp-total-value">{fmtNum(totalConverted)}</div>
-                  </div>
-                  <div className="tj-bars">
-                    {byCategory.length === 0 && <div className="tj-empty-sm">無費用紀錄</div>}
-                    {byCategory.map((c) => (
-                      <div className="tj-bar-row" key={c.category}>
-                        <span>{c.category}</span>
-                        <div className="tj-bar-track"><div className="tj-bar-fill" style={{ width: `${(c.amount / maxCategoryAmount) * 100}%`, background: EXP_COLORS[c.category] }} /></div>
-                        <span style={{ textAlign: "right" }}>{fmtNum(c.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <ExpenseSummarySection />
                 {expenses.map((e) => (
                   <div className="tj-row" key={e.id}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -853,9 +867,6 @@
                     </div>
                     <div className="tj-exp-amount">
                       {fmtNum(e.amount)} {e.currency}
-                      {e.currency !== displayCurrency && (
-                        <span className="tj-exp-amount-sub">≈ {fmtNum(convertCurrency(e.amount, e.currency, displayCurrency))} {displayCurrency}</span>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -982,27 +993,8 @@
               {/* 費用管理編輯區 */}
               <div className="tj-panel">
                 <div className="tj-panel-title">💰 費用管理</div>
-                <div className="tj-exp-summary">
-                  <div className="tj-exp-total">
-                    <div className="tj-exp-total-label">
-                      總支出
-                      <select className="tj-currency-select" value={displayCurrency} onChange={(e) => setDisplayCurrency(e.target.value)}>
-                        {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div className="tj-exp-total-value">{fmtNum(totalConverted)}</div>
-                  </div>
-                  <div className="tj-bars">
-                    {byCategory.length === 0 && <div className="tj-empty-sm">還沒有費用紀錄</div>}
-                    {byCategory.map((c) => (
-                      <div className="tj-bar-row" key={c.category}>
-                        <span>{c.category}</span>
-                        <div className="tj-bar-track"><div className="tj-bar-fill" style={{ width: `${(c.amount / maxCategoryAmount) * 100}%`, background: EXP_COLORS[c.category] }} /></div>
-                        <span style={{ textAlign: "right" }}>{fmtNum(c.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                
+                <ExpenseSummarySection />
 
                 {expenses.length === 0 && <div className="tj-empty-sm">尚未新增任何費用</div>}
                 {expenses.map((e) => (
@@ -1017,9 +1009,6 @@
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div className="tj-exp-amount">
                         {fmtNum(e.amount)} {e.currency}
-                        {e.currency !== displayCurrency && (
-                          <span className="tj-exp-amount-sub">≈ {fmtNum(convertCurrency(e.amount, e.currency, displayCurrency))} {displayCurrency}</span>
-                        )}
                       </div>
                       <button className="tj-mini-edit" onClick={() => startEditExpense(e)}>✏️</button>
                       <button className="tj-mini-del" onClick={() => removeExpense(e.id)}>✕</button>
