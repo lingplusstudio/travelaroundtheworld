@@ -20,9 +20,12 @@
     .tj-brand { display:flex; align-items:center; gap:10px; }
     .tj-brand-title { font-family:'Fraunces', serif; font-size:20px; font-weight:600; }
     .tj-brand-sub { font-family:'IBM Plex Mono', monospace; font-size:11px; opacity:0.7; letter-spacing:1px; }
-    .tj-nav { display:flex; gap:4px; padding:14px 28px 0; border-bottom:1px solid var(--line); }
+    .tj-nav { display:flex; align-items:center; justify-content:space-between; padding:14px 28px 0; border-bottom:1px solid var(--line); }
+    .tj-nav-left { display:flex; gap:4px; }
     .tj-nav-item { padding:10px 18px; cursor:pointer; font-size:14px; font-weight:500; color:var(--ink-soft); border-bottom:2px solid transparent; display:flex; align-items:center; gap:6px; }
     .tj-nav-item.active { color:var(--navy); border-color:var(--stamp); font-weight:600; }
+    .tj-add-btn { background: var(--stamp); color: #fff; border: none; border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+    
     .tj-body { padding:28px; max-width:980px; margin:0 auto; }
     .tj-map-wrap { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; position:relative; }
     .tj-map-toolbar { display:flex; justify-content:flex-end; align-items:center; gap:10px; margin-bottom:8px; }
@@ -34,7 +37,7 @@
     .tj-pin-ring { fill:none; stroke:var(--stamp); stroke-width:1.4; opacity:0.5; }
     .tj-pin-dot { fill:var(--stamp); stroke:var(--card); stroke-width:1.6; }
     .tj-pin-label { font-family:'IBM Plex Mono', monospace; font-size:9px; fill:var(--navy-deep); font-weight:600; }
-    .tj-section-title { font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:28px 0 14px; display:flex; align-items:center; gap:10px; }
+    .tj-section-title { font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:28px 0 14px; display:flex; align-items:center; justify-content:space-between; }
     .tj-trip-list { display:grid; gap:14px; }
     .tj-ticket { display:flex; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; }
     .tj-ticket-main { flex:1; padding:16px 20px; }
@@ -48,8 +51,10 @@
     .tj-ticket-stub { width:100px; background:var(--navy); color:#F7F3EA; display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:2px dashed rgba(247,243,234,0.35); font-family:'IBM Plex Mono', monospace; font-size:11px; gap:4px; padding:10px; }
     .tj-ticket-route { font-size:13px; font-weight:600; }
     .tj-back { display:flex; align-items:center; gap:6px; color:var(--navy); cursor:pointer; font-size:14px; margin-bottom:16px; }
+    .tj-detail-header { display: flex; justify-content: space-between; align-items: flex-start; }
     .tj-detail-title { font-family:'Fraunces', serif; font-size:28px; font-weight:600; }
     .tj-detail-sub { font-family:'IBM Plex Mono', monospace; color:var(--ink-soft); font-size:13px; margin-top:6px; }
+    .tj-btn-delete { background: transparent; border: 1px solid var(--stamp); color: var(--stamp); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .tj-panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin-bottom:16px; }
     .tj-panel-title { display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; margin-bottom:12px; color:var(--navy); }
     .tj-daytabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
@@ -58,6 +63,16 @@
     .tj-notes-input { width:100%; min-height:100px; border:1px solid var(--line); border-radius:8px; padding:12px; font-family:'Work Sans', sans-serif; font-size:14px; line-height:1.7; resize:vertical; background:var(--paper); color:var(--ink); }
     .tj-btn-save { background:var(--stamp); color:#fff; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer; font-weight:500; margin-top:8px; }
     
+    /* 彈跳視窗 Modal */
+    .tj-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .tj-modal { background: var(--card); border-radius: 12px; padding: 24px; width: 90%; max-width: 480px; border: 1px solid var(--line); }
+    .tj-modal-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+    .tj-form-group { margin-bottom: 14px; }
+    .tj-form-group label { display: block; font-size: 12px; font-family: 'IBM Plex Mono', monospace; color: var(--ink-soft); margin-bottom: 4px; }
+    .tj-form-group input, .tj-form-group select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; background: var(--paper); }
+    .tj-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .tj-btn-cancel { background: var(--paper); border: 1px solid var(--line); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+
     .tj-login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--paper); text-align: center; }
     .tj-login-btn { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #ddd; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .tj-user-profile { display: flex; align-items: center; gap: 8px; font-size: 13px; }
@@ -80,7 +95,6 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    // 1. 金鑰設定
     const firebaseConfig = {
       apiKey: "AIzaSyB5FGDc4XhkK5cBmo-2Z4NeH3mngyMGR3Y",
       authDomain: "travelaroundtheworld-2f0d0.firebaseapp.com",
@@ -91,7 +105,6 @@
       measurementId: "G-ZLT6LS3J5W"
     };
 
-    // 2. 初始化 Firebase
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -101,9 +114,11 @@
     const MAP_W = 900, MAP_H = 460;
     const WORLD_GEOJSON_URL = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
     const MAP_PINS = [
-      { key: "JP", label: "日本", lat: 36.5, lon: 138, count: 2 },
-      { key: "KR", label: "韓國", lat: 37.5, lon: 127.5, count: 1 },
-      { key: "TW", label: "台灣", lat: 23.7, lon: 121, count: 1 },
+      { key: "JP", label: "日本", lat: 36.5, lon: 138 },
+      { key: "KR", label: "韓國", lat: 37.5, lon: 127.5 },
+      { key: "TW", label: "台灣", lat: 23.7, lon: 121 },
+      { key: "AT", label: "奧地利", lat: 47.5, lon: 14.5 },
+      { key: "CZ", label: "捷克", lat: 49.8, lon: 15.5 },
     ];
 
     function WorldMap({ onSelectCountry }) {
@@ -156,7 +171,7 @@
               if (!pt) return null;
               return (
                 <g key={p.key} className="tj-pin-group" transform={`translate(${pt[0]}, ${pt[1]})`} onClick={() => onSelectCountry(p.key)}>
-                  <circle r={7 + p.count * 2.2} className="tj-pin-ring" />
+                  <circle r={9} className="tj-pin-ring" />
                   <circle r="4.5" className="tj-pin-dot" />
                   <text x="10" y="4" className="tj-pin-label">{p.label}</text>
                 </g>
@@ -181,10 +196,7 @@
 
       const handleLogin = () => {
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(err => {
-          console.error(err);
-          alert("登入失敗：" + err.message);
-        });
+        auth.signInWithPopup(provider).catch(err => alert("登入失敗：" + err.message));
       };
 
       const handleLogout = () => auth.signOut();
@@ -212,6 +224,12 @@
       const [selectedId, setSelectedId] = React.useState(null);
       const [filterKey, setFilterKey] = React.useState(null);
       const [tripsState, setTripsState] = React.useState([]);
+      const [showAddModal, setShowAddModal] = React.useState(false);
+
+      // 表單 State
+      const [newTrip, setNewTrip] = React.useState({
+        title: "", city: "", countryKey: "JP", status: "planned", dateRange: "", route: "", dayCount: 3
+      });
 
       React.useEffect(() => {
         const unsub = db.collection("trips").onSnapshot((snapshot) => {
@@ -224,6 +242,40 @@
       const selectedTrip = React.useMemo(() => tripsState.find((t) => t.id === selectedId), [selectedId, tripsState]);
       const filteredTrips = filterKey ? tripsState.filter((t) => t.countryKey === filterKey) : tripsState;
       const openTrip = (id) => { setSelectedId(id); setTab("detail"); };
+
+      // 新增行程至 Firebase
+      const handleAddTrip = async (e) => {
+        e.preventDefault();
+        if (!newTrip.title || !newTrip.city) return alert("請填寫完整名稱與城市！");
+
+        const daysArr = [];
+        for (let i = 1; i <= Number(newTrip.dayCount); i++) {
+          daysArr.push({ day: i, notes: "" });
+        }
+
+        await db.collection("trips").add({
+          title: newTrip.title,
+          city: newTrip.city,
+          countryKey: newTrip.countryKey,
+          status: newTrip.status,
+          dateRange: newTrip.dateRange || "未定",
+          route: newTrip.route || "自由行",
+          days: daysArr,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        setShowAddModal(false);
+        setNewTrip({ title: "", city: "", countryKey: "JP", status: "planned", dateRange: "", route: "", dayCount: 3 });
+        alert("行程已新增成功！");
+      };
+
+      // 刪除行程
+      const handleDeleteTrip = async (id) => {
+        if (confirm("確定要刪除這趟旅程紀錄嗎？刪除後無法復原喔！")) {
+          await db.collection("trips").doc(id).delete();
+          setTab("trips");
+        }
+      };
 
       return (
         <div className="tj-root">
@@ -243,35 +295,96 @@
           </div>
 
           <div className="tj-nav">
-            <div className={`tj-nav-item ${tab === "map" ? "active" : ""}`} onClick={() => setTab("map")}>🌐 地圖</div>
-            <div className={`tj-nav-item ${tab === "trips" || tab === "detail" ? "active" : ""}`} onClick={() => { setFilterKey(null); setTab("trips"); }}>✈️ 行程紀錄</div>
+            <div className="tj-nav-left">
+              <div className={`tj-nav-item ${tab === "map" ? "active" : ""}`} onClick={() => setTab("map")}>🌐 地圖</div>
+              <div className={`tj-nav-item ${tab === "trips" || tab === "detail" ? "active" : ""}`} onClick={() => { setFilterKey(null); setTab("trips"); }}>✈️ 行程紀錄</div>
+            </div>
+            <button className="tj-add-btn" onClick={() => setShowAddModal(true)}>➕ 新增行程</button>
           </div>
 
           <div className="tj-body">
             {tab === "map" && (
               <>
                 <WorldMap onSelectCountry={(key) => { setFilterKey(key); setTab("trips"); }} />
-                <div className="tj-section-title">📍 最新紀錄</div>
+                <div className="tj-section-title">
+                  📍 最新紀錄
+                </div>
                 <div className="tj-trip-list">
-                  {tripsState.slice(0, 2).map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} />)}
+                  {tripsState.slice(0, 3).map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} />)}
+                  {tripsState.length === 0 && <div style={{ color: "#6B6455", textAlign: "center", padding: 20 }}>還沒有任何行程，點擊右上角「新增行程」開始記錄吧！</div>}
                 </div>
               </>
             )}
 
             {tab === "trips" && (
               <>
-                <div className="tj-section-title">✈️ 所有行程紀錄</div>
+                <div className="tj-section-title">
+                  ✈️ 所有行程紀錄
+                </div>
                 {filterKey && <div className="tj-back" onClick={() => setFilterKey(null)}>← 清除篩選，顯示全部</div>}
                 <div className="tj-trip-list">
                   {filteredTrips.map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} />)}
+                  {filteredTrips.length === 0 && <div style={{ color: "#6B6455", textAlign: "center", padding: 20 }}>這個地區還沒有行程資料喔！</div>}
                 </div>
               </>
             )}
 
             {tab === "detail" && selectedTrip && (
-              <TripDetail trip={selectedTrip} onBack={() => setTab("trips")} />
+              <TripDetail trip={selectedTrip} onBack={() => setTab("trips")} onDelete={() => handleDeleteTrip(selectedTrip.id)} />
             )}
           </div>
+
+          {/* 新增行程彈跳表單 Modal */}
+          {showAddModal && (
+            <div className="tj-modal-overlay">
+              <div className="tj-modal">
+                <div className="tj-modal-title">➕ 新增旅遊行程</div>
+                <form onSubmit={handleAddTrip}>
+                  <div className="tj-form-group">
+                    <label>行程名稱</label>
+                    <input required placeholder="例如：東京秋楓自由行 / 奧捷跟團10日" value={newTrip.title} onChange={(e) => setNewTrip({...newTrip, title: e.target.value})} />
+                  </div>
+                  <div className="tj-form-group">
+                    <label>主要城市</label>
+                    <input required placeholder="例如：東京 / 布拉格" value={newTrip.city} onChange={(e) => setNewTrip({...newTrip, city: e.target.value})} />
+                  </div>
+                  <div className="tj-form-group">
+                    <label>國家地區</label>
+                    <select value={newTrip.countryKey} onChange={(e) => setNewTrip({...newTrip, countryKey: e.target.value})}>
+                      <option value="JP">日本</option>
+                      <option value="KR">韓國</option>
+                      <option value="TW">台灣</option>
+                      <option value="AT">奧地利</option>
+                      <option value="CZ">捷克</option>
+                    </select>
+                  </div>
+                  <div className="tj-form-group">
+                    <label>旅行天數</label>
+                    <input type="number" min="1" max="30" value={newTrip.dayCount} onChange={(e) => setNewTrip({...newTrip, dayCount: e.target.value})} />
+                  </div>
+                  <div className="tj-form-group">
+                    <label>日期區間</label>
+                    <input placeholder="例如：2026.10.10 – 10.20" value={newTrip.dateRange} onChange={(e) => setNewTrip({...newTrip, dateRange: e.target.value})} />
+                  </div>
+                  <div className="tj-form-group">
+                    <label>航線 / 移動方式</label>
+                    <input placeholder="例如：TPE → VIE 或 自駕" value={newTrip.route} onChange={(e) => setNewTrip({...newTrip, route: e.target.value})} />
+                  </div>
+                  <div className="tj-form-group">
+                    <label>行程狀態</label>
+                    <select value={newTrip.status} onChange={(e) => setNewTrip({...newTrip, status: e.target.value})}>
+                      <option value="planned">計畫中</option>
+                      <option value="completed">已完成</option>
+                    </select>
+                  </div>
+                  <div className="tj-modal-actions">
+                    <button type="button" className="tj-btn-cancel" onClick={() => setShowAddModal(false)}>取消</button>
+                    <button type="submit" className="tj-btn-save" style={{ marginTop: 0 }}>建立並備份</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -298,7 +411,7 @@
       );
     }
 
-    function TripDetail({ trip, onBack }) {
+    function TripDetail({ trip, onBack, onDelete }) {
       const [activeDay, setActiveDay] = React.useState(1);
       const [tempNote, setTempNote] = React.useState("");
       const [saving, setSaving] = React.useState(false);
@@ -312,14 +425,19 @@
         const updatedDays = trip.days.map((d) => (d.day === activeDay ? { ...d, notes: tempNote } : d));
         await db.collection("trips").doc(trip.id).update({ days: updatedDays });
         setSaving(false);
-        alert("心得已成功儲存！");
+        alert("心得已成功儲存至雲端備份！");
       };
 
       return (
         <div>
           <div className="tj-back" onClick={onBack}>← 返回列表</div>
-          <div className="tj-detail-title">{trip.title}</div>
-          <div className="tj-detail-sub">{trip.dateRange} ・ {trip.route}</div>
+          <div className="tj-detail-header">
+            <div>
+              <div className="tj-detail-title">{trip.title}</div>
+              <div className="tj-detail-sub">{trip.dateRange} ・ {trip.route}</div>
+            </div>
+            <button className="tj-btn-delete" onClick={onDelete}>🗑 刪除行程</button>
+          </div>
 
           <div className="tj-panel" style={{ marginTop: 20 }}>
             <div className="tj-daytabs">
@@ -339,7 +457,7 @@
                 onChange={(e) => setTempNote(e.target.value)} 
               />
               <button className="tj-btn-save" onClick={handleNoteSave} disabled={saving}>
-                {saving ? "儲存中..." : "儲存筆記"}
+                {saving ? "同步中..." : "儲存並同步至雲端"}
               </button>
             </div>
           </div>
