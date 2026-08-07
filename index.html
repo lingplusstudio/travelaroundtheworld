@@ -37,7 +37,6 @@
     .tj-pin-ring { fill:none; stroke:var(--stamp); stroke-width:1.4; opacity:0.5; }
     .tj-pin-dot { fill:var(--stamp); stroke:var(--card); stroke-width:1.6; }
     
-    /* 文字優化：加入抗鋸齒與襯底 */
     .tj-pin-label {
       font-family: 'IBM Plex Mono', sans-serif;
       fill: var(--navy-deep);
@@ -60,8 +59,12 @@
     .tj-ticket-status.planned { background:#EDEEF2; color:var(--navy); }
     .tj-ticket-title { color:var(--ink-soft); font-size:13px; margin-top:2px; word-break: break-word; }
     .tj-ticket-meta { display:flex; gap:16px; margin-top:12px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); flex-wrap: wrap; }
-    .tj-ticket-stub { width:100px; background:var(--navy); color:#F7F3EA; display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:2px dashed rgba(247,243,234,0.35); font-family:'IBM Plex Mono', monospace; font-size:11px; gap:4px; padding:10px; flex-shrink: 0; }
-    .tj-ticket-route { font-size:13px; font-weight:600; text-align: center; word-break: break-all; }
+    
+    .tj-ticket-stub { width:110px; background:var(--navy); color:#F7F3EA; display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:2px dashed rgba(247,243,234,0.35); font-family:'IBM Plex Mono', monospace; font-size:11px; gap:6px; padding:10px; flex-shrink: 0; }
+    .tj-ticket-route { font-size:12px; font-weight:600; text-align: center; word-break: break-all; }
+    .tj-btn-copy-card { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #F7F3EA; padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+    .tj-btn-copy-card:hover { background: rgba(255,255,255,0.3); }
+
     .tj-back { display:flex; align-items:center; gap:6px; color:var(--navy); cursor:pointer; font-size:14px; margin-bottom:16px; }
     .tj-detail-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
     .tj-detail-title { font-family:'Fraunces', serif; font-size:28px; font-weight:600; word-break: break-word; }
@@ -150,7 +153,7 @@
     @media (max-width: 600px) {
       .tj-body { padding: 16px 12px; }
       .tj-header, .tj-nav { padding: 14px 16px; }
-      .tj-ticket-stub { width: 75px; font-size: 10px; padding: 6px; }
+      .tj-ticket-stub { width: 85px; font-size: 10px; padding: 6px; }
       .tj-ticket-main { padding: 12px 14px; }
       .tj-ticket-city { font-size: 17px; }
       .tj-detail-title { font-size: 22px; }
@@ -286,17 +289,16 @@
               const pt = pinPoints[p.key];
               if (!pt) return null;
 
-              // 精細錯位計算：避免鄰近國家撞字
               let textAnchor = "middle";
               let dx = 0;
               let dy = zoomed ? 10 : 16;
 
               if (p.key === "KR") {
-                textAnchor = "end"; // 韓國往左下延伸
+                textAnchor = "end";
                 dx = zoomed ? -6 : -10;
                 dy = zoomed ? 8 : 12;
               } else if (p.key === "JP") {
-                textAnchor = "start"; // 日本往右上延伸
+                textAnchor = "start";
                 dx = zoomed ? 6 : 10;
                 dy = zoomed ? -2 : -4;
               }
@@ -389,6 +391,7 @@
 
       const openTrip = (id) => { setSelectedId(id); setTab("detail"); };
 
+      // 新增行程
       const handleAddTrip = async (e) => {
         e.preventDefault();
         if (!newTrip.title || !newTrip.city) return alert("請填寫完整名稱與城市！");
@@ -415,6 +418,37 @@
 
         setShowAddModal(false);
         setNewTrip({ title: "", city: "", countryKey: "JP", status: "planned", dateRange: "", route: "", dayCount: 3, currency: "JPY" });
+      };
+
+      // 📋 行程複製功能：複製版面天數與基本設定，清空明細筆記
+      const handleCopyTrip = async (tripToCopy, e) => {
+        e.stopPropagation(); // 防止觸發進入詳細頁
+        if (!confirm(`確定要複製「${tripToCopy.title}」的版面來建立新行程嗎？`)) return;
+
+        // 產生保留結構但內容空白的 days 陣列
+        const clonedDays = (tripToCopy.days || []).map((d) => ({
+          day: d.day,
+          date: "",
+          items: [],
+          notes: ""
+        }));
+
+        const newDoc = await db.collection("trips").add({
+          title: `[複製] ${tripToCopy.title}`,
+          city: tripToCopy.city,
+          countryKey: tripToCopy.countryKey,
+          status: "planned",
+          dateRange: tripToCopy.dateRange,
+          route: tripToCopy.route,
+          currency: tripToCopy.currency || "TWD",
+          days: clonedDays.length ? clonedDays : [{ day: 1, date: "", items: [], notes: "" }],
+          flights: [],
+          hotels: [],
+          expenses: [],
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        openTrip(newDoc.id);
       };
 
       const handleUpdateTripInfo = async (e) => {
@@ -473,7 +507,7 @@
                 <WorldMap trips={tripsState} onSelectCountry={(key) => { setFilterKey(key); setTab("foreign"); }} />
                 <div className="tj-section-title">📍 最新國外紀錄</div>
                 <div className="tj-trip-list">
-                  {foreignTrips.slice(0, 3).map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} />)}
+                  {foreignTrips.slice(0, 3).map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} onCopy={(e) => handleCopyTrip(t, e)} />)}
                   {foreignTrips.length === 0 && <div style={{ color: "#6B6455", textAlign: "center", padding: 20 }}>還沒有國外行程，點擊右上角「新增行程」開始記錄吧！</div>}
                 </div>
               </>
@@ -486,7 +520,7 @@
                 </div>
                 {filterKey && <div className="tj-back" onClick={() => setFilterKey(null)}>← 清除篩選，顯示全部國外行程</div>}
                 <div className="tj-trip-list">
-                  {filteredForeignTrips.map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} />)}
+                  {filteredForeignTrips.map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} onCopy={(e) => handleCopyTrip(t, e)} />)}
                   {filteredForeignTrips.length === 0 && <div style={{ color: "#6B6455", textAlign: "center", padding: 20 }}>這個地區還沒有國外行程資料喔！</div>}
                 </div>
               </>
@@ -496,7 +530,7 @@
               <>
                 <div className="tj-section-title">🇹🇼 台灣本土行程紀錄</div>
                 <div className="tj-trip-list">
-                  {twTrips.map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} />)}
+                  {twTrips.map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} onCopy={(e) => handleCopyTrip(t, e)} />)}
                   {twTrips.length === 0 && <div style={{ color: "#6B6455", textAlign: "center", padding: 20 }}>還沒有台灣本土行程，點擊右上角「新增行程」開始記錄吧！</div>}
                 </div>
               </>
@@ -625,7 +659,7 @@
       );
     }
 
-    function TripCard({ trip, onClick }) {
+    function TripCard({ trip, onClick, onCopy }) {
       return (
         <div className="tj-ticket" onClick={onClick}>
           <div className="tj-ticket-main">
@@ -641,7 +675,7 @@
           </div>
           <div className="tj-ticket-stub">
             <div className="tj-ticket-route">{trip.route}</div>
-            <div>＞</div>
+            <button className="tj-btn-copy-card" onClick={onCopy}>📋 複製行程</button>
           </div>
         </div>
       );
