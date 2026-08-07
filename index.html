@@ -48,7 +48,7 @@
       pointer-events: none;
     }
 
-    .tj-section-title { font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:28px 0 14px; display:flex; align-items:center; justify-content:space-between; }
+    .tj-section-title { font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:28px 0 14px; display:flex; align-items:center; justify-content:space-between; flex-wrap: wrap; gap: 10px; }
     .tj-trip-list { display:grid; gap:14px; }
     .tj-ticket { display:flex; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; }
     .tj-ticket-main { flex:1; padding:16px 20px; min-width: 0; word-break: break-word; }
@@ -58,12 +58,19 @@
     .tj-ticket-status.completed { background:#E7EEE9; color:var(--teal); }
     .tj-ticket-status.planned { background:#EDEEF2; color:var(--navy); }
     .tj-ticket-title { color:var(--ink-soft); font-size:13px; margin-top:2px; word-break: break-word; }
-    .tj-ticket-meta { display:flex; gap:16px; margin-top:12px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); flex-wrap: wrap; }
-    
+    .tj-ticket-meta { display:flex; gap:16px; margin-top:12px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); flex-wrap: wrap; align-items: center; }
+    .tj-ticket-expense { background: #F2EFE6; color: var(--navy); padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px; }
+
     .tj-ticket-stub { width:110px; background:var(--navy); color:#F7F3EA; display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:2px dashed rgba(247,243,234,0.35); font-family:'IBM Plex Mono', monospace; font-size:11px; gap:6px; padding:10px; flex-shrink: 0; }
     .tj-ticket-route { font-size:12px; font-weight:600; text-align: center; word-break: break-all; }
     .tj-btn-copy-card { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #F7F3EA; padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
     .tj-btn-copy-card:hover { background: rgba(255,255,255,0.3); }
+
+    /* 年度篩選橫條 */
+    .tj-year-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; align-items: center; }
+    .tj-year-label { font-size: 12px; font-family: 'IBM Plex Mono', monospace; color: var(--ink-soft); flex-shrink: 0; margin-right: 4px; }
+    .tj-year-btn { padding: 4px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); font-size: 12px; font-family: 'IBM Plex Mono', monospace; cursor: pointer; color: var(--ink-soft); flex-shrink: 0; }
+    .tj-year-btn.active { background: var(--navy); color: #F7F3EA; border-color: var(--navy); font-weight: 600; }
 
     .tj-back { display:flex; align-items:center; gap:6px; color:var(--navy); cursor:pointer; font-size:14px; margin-bottom:16px; }
     .tj-detail-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
@@ -209,6 +216,9 @@
       TH: { label: "泰國", lat: 15.8, lon: 100.9 },
       SG: { label: "新加坡", lat: 1.35, lon: 103.8 }
     };
+
+    // 年度選單 (2020 ~ 2026)
+    const YEARS = ["全部", "2026", "2025", "2024", "2023", "2022", "2021", "2020"];
 
     const EXP_CATEGORIES = ["交通", "住宿", "餐飲", "門票", "購物", "其他"];
     const EXP_COLORS = { 交通: "#3E6259", 住宿: "#1E3A5F", 餐飲: "#A8412F", 門票: "#8A6D3B", 購物: "#6B4E71", 其他: "#8A8477" };
@@ -366,17 +376,22 @@
       const [tab, setTab] = React.useState("map");
       const [selectedId, setSelectedId] = React.useState(null);
       const [filterKey, setFilterKey] = React.useState(null);
+      const [selectedYear, setSelectedYear] = React.useState("全部"); // 預設年度選單
       const [tripsState, setTripsState] = React.useState([]);
       const [showAddModal, setShowAddModal] = React.useState(false);
       const [editingTrip, setEditingTrip] = React.useState(null);
 
       const [newTrip, setNewTrip] = React.useState({
-        title: "", city: "", countryKey: "JP", status: "planned", dateRange: "", route: "", dayCount: 3, currency: "JPY"
+        title: "", city: "", countryKey: "JP", status: "planned", year: "2026", dateRange: "", route: "", dayCount: 3, currency: "JPY"
       });
 
       React.useEffect(() => {
         const unsub = db.collection("trips").onSnapshot((snapshot) => {
-          const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          const docs = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            // 自動修復舊資料：若無年度欄位，預設歸類至 2026 年
+            return { id: doc.id, ...data, year: data.year || "2026" };
+          });
           setTripsState(docs);
         });
         return () => unsub();
@@ -384,14 +399,19 @@
 
       const selectedTrip = React.useMemo(() => tripsState.find((t) => t.id === selectedId), [selectedId, tripsState]);
       
-      const foreignTrips = React.useMemo(() => tripsState.filter(t => t.countryKey !== "TW"), [tripsState]);
-      const twTrips = React.useMemo(() => tripsState.filter(t => t.countryKey === "TW"), [tripsState]);
+      // 分流並套用「年度篩選」
+      const foreignTrips = React.useMemo(() => {
+        return tripsState.filter(t => t.countryKey !== "TW" && (selectedYear === "全部" || t.year === selectedYear));
+      }, [tripsState, selectedYear]);
+
+      const twTrips = React.useMemo(() => {
+        return tripsState.filter(t => t.countryKey === "TW" && (selectedYear === "全部" || t.year === selectedYear));
+      }, [tripsState, selectedYear]);
       
       const filteredForeignTrips = filterKey ? foreignTrips.filter((t) => t.countryKey === filterKey) : foreignTrips;
 
       const openTrip = (id) => { setSelectedId(id); setTab("detail"); };
 
-      // 新增行程
       const handleAddTrip = async (e) => {
         e.preventDefault();
         if (!newTrip.title || !newTrip.city) return alert("請填寫完整名稱與城市！");
@@ -406,6 +426,7 @@
           city: newTrip.city,
           countryKey: newTrip.countryKey,
           status: newTrip.status,
+          year: newTrip.year || "2026",
           dateRange: newTrip.dateRange || "未定",
           route: newTrip.route || (newTrip.countryKey === "TW" ? "國道 / 高鐵" : "自由行"),
           currency: newTrip.currency,
@@ -417,34 +438,32 @@
         });
 
         setShowAddModal(false);
-        setNewTrip({ title: "", city: "", countryKey: "JP", status: "planned", dateRange: "", route: "", dayCount: 3, currency: "JPY" });
+        setNewTrip({ title: "", city: "", countryKey: "JP", status: "planned", year: "2026", dateRange: "", route: "", dayCount: 3, currency: "JPY" });
       };
 
-      // 📋 行程複製功能：複製版面天數與基本設定，清空明細筆記
+      // 📋 行程 100% 全複製
       const handleCopyTrip = async (tripToCopy, e) => {
-        e.stopPropagation(); // 防止觸發進入詳細頁
-        if (!confirm(`確定要複製「${tripToCopy.title}」的版面來建立新行程嗎？`)) return;
+        e.stopPropagation();
+        if (!confirm(`確定要完整複製「${tripToCopy.title}」（包含行程明細、機票、住宿與費用）嗎？`)) return;
 
-        // 產生保留結構但內容空白的 days 陣列
-        const clonedDays = (tripToCopy.days || []).map((d) => ({
-          day: d.day,
-          date: "",
-          items: [],
-          notes: ""
-        }));
+        const clonedDays = JSON.parse(JSON.stringify(tripToCopy.days || []));
+        const clonedFlights = JSON.parse(JSON.stringify(tripToCopy.flights || []));
+        const clonedHotels = JSON.parse(JSON.stringify(tripToCopy.hotels || []));
+        const clonedExpenses = JSON.parse(JSON.stringify(tripToCopy.expenses || []));
 
         const newDoc = await db.collection("trips").add({
           title: `[複製] ${tripToCopy.title}`,
           city: tripToCopy.city,
           countryKey: tripToCopy.countryKey,
           status: "planned",
+          year: tripToCopy.year || "2026",
           dateRange: tripToCopy.dateRange,
           route: tripToCopy.route,
           currency: tripToCopy.currency || "TWD",
-          days: clonedDays.length ? clonedDays : [{ day: 1, date: "", items: [], notes: "" }],
-          flights: [],
-          hotels: [],
-          expenses: [],
+          days: clonedDays,
+          flights: clonedFlights,
+          hotels: clonedHotels,
+          expenses: clonedExpenses,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
@@ -460,6 +479,7 @@
           city: editingTrip.city,
           countryKey: editingTrip.countryKey,
           status: editingTrip.status,
+          year: editingTrip.year || "2026",
           dateRange: editingTrip.dateRange,
           route: editingTrip.route,
           currency: editingTrip.currency || "TWD"
@@ -516,22 +536,46 @@
             {tab === "foreign" && (
               <>
                 <div className="tj-section-title">
-                  ✈️ {filterKey ? `${COUNTRY_DICT[filterKey]?.label || filterKey} 的行程` : "國外行程紀錄"}
+                  <span>✈️ {filterKey ? `${COUNTRY_DICT[filterKey]?.label || filterKey} 的行程` : "國外行程紀錄"}</span>
                 </div>
-                {filterKey && <div className="tj-back" onClick={() => setFilterKey(null)}>← 清除篩選，顯示全部國外行程</div>}
+
+                {/* 年度切換選單 */}
+                <div className="tj-year-bar">
+                  <span className="tj-year-label">🗓️ 年度：</span>
+                  {YEARS.map(y => (
+                    <button key={y} className={`tj-year-btn ${selectedYear === y ? "active" : ""}`} onClick={() => setSelectedYear(y)}>
+                      {y === "全部" ? "全部" : `${y}年`}
+                    </button>
+                  ))}
+                </div>
+
+                {filterKey && <div className="tj-back" onClick={() => setFilterKey(null)}>← 清除國家篩選，顯示全部國外行程</div>}
                 <div className="tj-trip-list">
                   {filteredForeignTrips.map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} onCopy={(e) => handleCopyTrip(t, e)} />)}
-                  {filteredForeignTrips.length === 0 && <div style={{ color: "#6B6455", textAlign: "center", padding: 20 }}>這個地區還沒有國外行程資料喔！</div>}
+                  {filteredForeignTrips.length === 0 && <div style={{ color: "#6B6455", textAlign: "center", padding: 20 }}>{selectedYear} 年度沒有國外行程資料喔！</div>}
                 </div>
               </>
             )}
 
             {tab === "tw" && (
               <>
-                <div className="tj-section-title">🇹🇼 台灣本土行程紀錄</div>
+                <div className="tj-section-title">
+                  <span>🇹🇼 台灣本土行程紀錄</span>
+                </div>
+
+                {/* 年度切換選單 */}
+                <div className="tj-year-bar">
+                  <span className="tj-year-label">🗓️ 年度：</span>
+                  {YEARS.map(y => (
+                    <button key={y} className={`tj-year-btn ${selectedYear === y ? "active" : ""}`} onClick={() => setSelectedYear(y)}>
+                      {y === "全部" ? "全部" : `${y}年`}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="tj-trip-list">
                   {twTrips.map((t) => <TripCard key={t.id} trip={t} onClick={() => openTrip(t.id)} onCopy={(e) => handleCopyTrip(t, e)} />)}
-                  {twTrips.length === 0 && <div style={{ color: "#6B6455", textAlign: "center", padding: 20 }}>還沒有台灣本土行程，點擊右上角「新增行程」開始記錄吧！</div>}
+                  {twTrips.length === 0 && <div style={{ color: "#6B6455", textAlign: "center", padding: 20 }}>{selectedYear} 年度沒有台灣本土行程喔！</div>}
                 </div>
               </>
             )}
@@ -558,6 +602,12 @@
                   <div className="tj-form-group">
                     <label>主要城市</label>
                     <input required placeholder="例如：台南 / 布拉格" value={newTrip.city} onChange={(e) => setNewTrip({...newTrip, city: e.target.value})} />
+                  </div>
+                  <div className="tj-form-group">
+                    <label>行程年份</label>
+                    <select value={newTrip.year} onChange={(e) => setNewTrip({...newTrip, year: e.target.value})}>
+                      {YEARS.filter(y => y !== "全部").map(y => <option key={y} value={y}>{y} 年</option>)}
+                    </select>
                   </div>
                   <div className="tj-form-group">
                     <label>國家地區</label>
@@ -619,6 +669,12 @@
                     <input required value={editingTrip.city} onChange={(e) => setEditingTrip({...editingTrip, city: e.target.value})} />
                   </div>
                   <div className="tj-form-group">
+                    <label>行程年份</label>
+                    <select value={editingTrip.year || "2026"} onChange={(e) => setEditingTrip({...editingTrip, year: e.target.value})}>
+                      {YEARS.filter(y => y !== "全部").map(y => <option key={y} value={y}>{y} 年</option>)}
+                    </select>
+                  </div>
+                  <div className="tj-form-group">
                     <label>國家地區</label>
                     <select value={editingTrip.countryKey} onChange={(e) => setEditingTrip({...editingTrip, countryKey: e.target.value})}>
                       {Object.keys(COUNTRY_DICT).map((code) => (
@@ -659,7 +715,24 @@
       );
     }
 
+    // 行程卡片：直接把「花費總額」顯示在總覽畫面上
     function TripCard({ trip, onClick, onCopy }) {
+      // 動態計算該卡片的總花費金額
+      const totalExpenseStr = React.useMemo(() => {
+        const expenses = trip.expenses || [];
+        if (!expenses.length) return null;
+
+        const totals = {};
+        expenses.forEach(e => {
+          const curr = e.currency || "TWD";
+          totals[curr] = (totals[curr] || 0) + (Number(e.amount) || 0);
+        });
+
+        return Object.keys(totals)
+          .map(curr => `${fmtNum(totals[curr])} ${curr}`)
+          .join(" + ");
+      }, [trip.expenses]);
+
       return (
         <div className="tj-ticket" onClick={onClick}>
           <div className="tj-ticket-main">
@@ -669,8 +742,10 @@
             </div>
             <div className="tj-ticket-title">{trip.title}</div>
             <div className="tj-ticket-meta">
+              <span>🗓️ {trip.year || "2026"}年</span>
               <span>📅 {trip.dateRange}</span>
               <span>{trip.days?.length || 0} 天</span>
+              {totalExpenseStr && <span className="tj-ticket-expense">💰 {totalExpenseStr}</span>}
             </div>
           </div>
           <div className="tj-ticket-stub">
@@ -879,7 +954,7 @@
           <div className="tj-detail-header">
             <div>
               <div className="tj-detail-title">{trip.title}</div>
-              <div className="tj-detail-sub">{trip.dateRange} ・ {trip.route} ・ {days.length} 天{Math.max(days.length - 1, 0)}夜</div>
+              <div className="tj-detail-sub">{trip.year || "2026"}年 ・ {trip.dateRange} ・ {trip.route} ・ {days.length} 天{Math.max(days.length - 1, 0)}夜</div>
             </div>
             <div className="tj-action-btns">
               <button className="tj-btn-mode" onClick={() => setReadMode((v) => !v)}>
