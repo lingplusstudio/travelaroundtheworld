@@ -143,6 +143,10 @@
     .tj-tag { font-size: 11px; padding: 3px 8px; border-radius: 10px; color: #fff; display: inline-block; flex-shrink: 0; }
     .tj-exp-amount { font-family: 'IBM Plex Mono', monospace; text-align: right; white-space: nowrap; font-weight: 500; }
 
+    .tj-conv-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; color: var(--ink-soft); }
+    .tj-conv-bar select { border:1px solid var(--line); border-radius:6px; padding:4px 8px; font-size:12px; background: var(--card); color: var(--ink); }
+    .tj-conv-total { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; color: var(--navy); }
+
     .tj-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
     .tj-modal { background: var(--card); border-radius: 12px; padding: 24px; width: 90%; max-width: 480px; border: 1px solid var(--line); max-height: 90vh; overflow-y: auto; }
     .tj-modal-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; margin-bottom: 16px; }
@@ -217,12 +221,16 @@
       SG: { label: "新加坡", lat: 1.35, lon: 103.8 }
     };
 
-    // 年度選單 (2020 ~ 2026)
-    const YEARS = ["全部", "2026", "2025", "2024", "2023", "2022", "2021", "2020"];
+    // 年度選單：自動以「今年」為基準往前後展開，不用每年手動改
+    const CURRENT_YEAR = new Date().getFullYear();
+    const YEARS = ["全部", ...Array.from({ length: 8 }, (_, i) => String(CURRENT_YEAR + 2 - i))];
 
     const EXP_CATEGORIES = ["交通", "住宿", "餐飲", "門票", "購物", "其他"];
     const EXP_COLORS = { 交通: "#3E6259", 住宿: "#1E3A5F", 餐飲: "#A8412F", 門票: "#8A6D3B", 購物: "#6B4E71", 其他: "#8A8477" };
     const CURRENCIES = ["TWD", "JPY", "KRW", "USD", "EUR"];
+    // 示範用固定匯率（1 單位外幣 = 多少 TWD），正式使用建議改接即時匯率 API
+    const RATE_TO_TWD = { TWD: 1, JPY: 0.21, KRW: 0.023, USD: 31.5, EUR: 34.5 };
+    const convertCurrency = (amount, from, to) => (amount * RATE_TO_TWD[from || "TWD"]) / RATE_TO_TWD[to || "TWD"];
     const fmtNum = (n) => Math.round(n).toLocaleString();
     const ITEM_TYPES = ["交通", "景點", "餐飲", "住宿"];
     const ITEM_ICONS = { 交通: "🚗", 景點: "📍", 餐飲: "🍽️", 住宿: "🏨" };
@@ -235,6 +243,41 @@
       if (isNaN(h) || isNaN(m)) return Infinity;
       return h * 60 + m;
     };
+
+    // 費用總覽（依原始幣別分開列出）—— 抽成獨立的 top-level component，
+    // 避免定義在 TripDetail 內部造成每次打字都整塊重新掛載。
+    function ExpenseSummarySection({ expensesByCurrency }) {
+      const currencies = Object.keys(expensesByCurrency);
+      if (currencies.length === 0) return <div className="tj-empty-sm">還沒有費用紀錄</div>;
+
+      return (
+        <div className="tj-exp-grid">
+          {currencies.map((curr) => {
+            const data = expensesByCurrency[curr];
+            const catList = EXP_CATEGORIES.map((c) => ({ category: c, amount: data.categories[c] || 0 })).filter((c) => c.amount > 0);
+            const maxAmt = Math.max(1, ...catList.map((c) => c.amount));
+
+            return (
+              <div className="tj-exp-summary-card" key={curr}>
+                <div className="tj-exp-total">
+                  <div className="tj-exp-total-label">{curr} 總計</div>
+                  <div className="tj-exp-total-value">{fmtNum(data.total)} <span style={{ fontSize: 12 }}>{curr}</span></div>
+                </div>
+                <div className="tj-bars">
+                  {catList.map((c) => (
+                    <div className="tj-bar-row" key={c.category}>
+                      <span>{c.category}</span>
+                      <div className="tj-bar-track"><div className="tj-bar-fill" style={{ width: `${(c.amount / maxAmt) * 100}%`, background: EXP_COLORS[c.category] }} /></div>
+                      <span style={{ textAlign: "right" }}>{fmtNum(c.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
 
     function WorldMap({ trips, onSelectCountry }) {
       const [zoomed, setZoomed] = React.useState(false);
@@ -382,15 +425,15 @@
       const [editingTrip, setEditingTrip] = React.useState(null);
 
       const [newTrip, setNewTrip] = React.useState({
-        title: "", city: "", countryKey: "JP", status: "planned", year: "2026", dateRange: "", route: "", dayCount: 3, currency: "JPY"
+        title: "", city: "", countryKey: "JP", status: "planned", year: String(CURRENT_YEAR), dateRange: "", route: "", dayCount: 3, currency: "JPY"
       });
 
       React.useEffect(() => {
         const unsub = db.collection("trips").onSnapshot((snapshot) => {
           const docs = snapshot.docs.map((doc) => {
             const data = doc.data();
-            // 自動修復舊資料：若無年度欄位，預設歸類至 2026 年
-            return { id: doc.id, ...data, year: data.year || "2026" };
+            // 自動修復舊資料：若無年度欄位，預設歸類至今年
+            return { id: doc.id, ...data, year: data.year || String(CURRENT_YEAR) };
           });
           setTripsState(docs);
         });
@@ -426,7 +469,7 @@
           city: newTrip.city,
           countryKey: newTrip.countryKey,
           status: newTrip.status,
-          year: newTrip.year || "2026",
+          year: newTrip.year || String(CURRENT_YEAR),
           dateRange: newTrip.dateRange || "未定",
           route: newTrip.route || (newTrip.countryKey === "TW" ? "國道 / 高鐵" : "自由行"),
           currency: newTrip.currency,
@@ -438,7 +481,7 @@
         });
 
         setShowAddModal(false);
-        setNewTrip({ title: "", city: "", countryKey: "JP", status: "planned", year: "2026", dateRange: "", route: "", dayCount: 3, currency: "JPY" });
+        setNewTrip({ title: "", city: "", countryKey: "JP", status: "planned", year: String(CURRENT_YEAR), dateRange: "", route: "", dayCount: 3, currency: "JPY" });
       };
 
       // 📋 行程 100% 全複製
@@ -456,7 +499,7 @@
           city: tripToCopy.city,
           countryKey: tripToCopy.countryKey,
           status: "planned",
-          year: tripToCopy.year || "2026",
+          year: tripToCopy.year || String(CURRENT_YEAR),
           dateRange: tripToCopy.dateRange,
           route: tripToCopy.route,
           currency: tripToCopy.currency || "TWD",
@@ -479,7 +522,7 @@
           city: editingTrip.city,
           countryKey: editingTrip.countryKey,
           status: editingTrip.status,
-          year: editingTrip.year || "2026",
+          year: editingTrip.year || String(CURRENT_YEAR),
           dateRange: editingTrip.dateRange,
           route: editingTrip.route,
           currency: editingTrip.currency || "TWD"
@@ -670,7 +713,7 @@
                   </div>
                   <div className="tj-form-group">
                     <label>行程年份</label>
-                    <select value={editingTrip.year || "2026"} onChange={(e) => setEditingTrip({...editingTrip, year: e.target.value})}>
+                    <select value={editingTrip.year || String(CURRENT_YEAR)} onChange={(e) => setEditingTrip({...editingTrip, year: e.target.value})}>
                       {YEARS.filter(y => y !== "全部").map(y => <option key={y} value={y}>{y} 年</option>)}
                     </select>
                   </div>
@@ -742,7 +785,7 @@
             </div>
             <div className="tj-ticket-title">{trip.title}</div>
             <div className="tj-ticket-meta">
-              <span>🗓️ {trip.year || "2026"}年</span>
+              <span>🗓️ {trip.year || String(CURRENT_YEAR)}年</span>
               <span>📅 {trip.dateRange}</span>
               <span>{trip.days?.length || 0} 天</span>
               {totalExpenseStr && <span className="tj-ticket-expense">💰 {totalExpenseStr}</span>}
@@ -767,6 +810,7 @@
       const [tempNote, setTempNote] = React.useState("");
       const [saving, setSaving] = React.useState(false);
       const [readMode, setReadMode] = React.useState(false);
+      const [convCurrency, setConvCurrency] = React.useState(tripCurrency);
 
       const emptyFlight = { no: "", route: "", date: "", note: "" };
       const emptyHotel = { name: "", checkin: "", checkout: "", note: "" };
@@ -784,6 +828,21 @@
       const [editExpenseId, setEditExpenseId] = React.useState(null);
 
       const day = days.find((d) => d.day === activeDay) || days[0];
+
+      // 換到別趟行程時，回到 DAY 1、清掉編輯中狀態，避免畫面跟按鈕對不起來
+      React.useEffect(() => {
+        setActiveDay(1);
+        setReadMode(false);
+        setEditFlightIdx(null);
+        setEditHotelIdx(null);
+        setEditItemIdx(null);
+        setEditExpenseId(null);
+        setNewFlight(emptyFlight);
+        setNewHotel(emptyHotel);
+        setNewItem(emptyItem);
+        setNewExpense({ ...emptyExpense, currency: tripCurrency });
+        setConvCurrency(tripCurrency);
+      }, [trip.id]);
 
       React.useEffect(() => {
         setTempNote(day?.notes || "");
@@ -805,6 +864,7 @@
       const addDay = () => patchTrip({ days: [...days, { day: days.length + 1, date: "", items: [], notes: "" }] });
       const removeDay = () => {
         if (days.length <= 1) return;
+        if (!confirm(`確定要刪除 DAY ${days.length} 嗎？這天的行程與心得也會一併刪除。`)) return;
         const updated = days.slice(0, -1);
         patchTrip({ days: updated });
         if (activeDay > updated.length) setActiveDay(updated.length);
@@ -823,6 +883,7 @@
       const startEditFlight = (idx) => { setEditFlightIdx(idx); setNewFlight({ ...flights[idx] }); };
       const cancelEditFlight = () => { setEditFlightIdx(null); setNewFlight(emptyFlight); };
       const removeFlight = (idx) => {
+        if (!confirm(`確定要刪除「${flights[idx]?.route || "這筆交通"}」嗎？`)) return;
         patchTrip({ flights: flights.filter((_, i) => i !== idx) });
         if (editFlightIdx === idx) cancelEditFlight();
       };
@@ -840,6 +901,7 @@
       const startEditHotel = (idx) => { setEditHotelIdx(idx); setNewHotel({ ...hotels[idx] }); };
       const cancelEditHotel = () => { setEditHotelIdx(null); setNewHotel(emptyHotel); };
       const removeHotel = (idx) => {
+        if (!confirm(`確定要刪除「${hotels[idx]?.name || "這筆住宿"}」嗎？`)) return;
         patchTrip({ hotels: hotels.filter((_, i) => i !== idx) });
         if (editHotelIdx === idx) cancelEditHotel();
       };
@@ -861,6 +923,8 @@
       const startEditItem = (idx) => { setEditItemIdx(idx); setNewItem({ ...(day.items || [])[idx] }); };
       const cancelEditItem = () => { setEditItemIdx(null); setNewItem(emptyItem); };
       const removeItem = (idx) => {
+        const target = (day.items || [])[idx];
+        if (!confirm(`確定要刪除「${target?.title || "這筆行程"}」嗎？`)) return;
         const updatedDays = days.map((d) => (d.day === activeDay ? { ...d, items: (d.items || []).filter((_, i) => i !== idx) } : d));
         patchTrip({ days: updatedDays });
         if (editItemIdx === idx) cancelEditItem();
@@ -883,17 +947,18 @@
             }]
           });
         }
-        setNewExpense(emptyExpense);
+        setNewExpense({ ...emptyExpense, currency: tripCurrency });
         setEditExpenseId(null);
       };
       const startEditExpense = (e) => {
         setEditExpenseId(e.id);
         setNewExpense({ category: e.category, item: e.item, amount: String(e.amount), currency: e.currency });
       };
-      const cancelEditExpense = () => { setEditExpenseId(null); setNewExpense(emptyExpense); };
-      const removeExpense = (id) => {
-        patchTrip({ expenses: expenses.filter((e) => e.id !== id) });
-        if (editExpenseId === id) cancelEditExpense();
+      const cancelEditExpense = () => { setEditExpenseId(null); setNewExpense({ ...emptyExpense, currency: tripCurrency }); };
+      const removeExpense = (e) => {
+        if (!confirm(`確定要刪除「${e.item}」這筆費用嗎？`)) return;
+        patchTrip({ expenses: expenses.filter((x) => x.id !== e.id) });
+        if (editExpenseId === e.id) cancelEditExpense();
       };
 
       const expensesByCurrency = React.useMemo(() => {
@@ -910,42 +975,15 @@
         return grouped;
       }, [expenses]);
 
+      // 把所有幣別的費用都換算成同一個幣別加總（示範匯率，僅供概略參考）
+      const convertedTotal = React.useMemo(() => {
+        return expenses.reduce((s, e) => s + convertCurrency(Number(e.amount) || 0, e.currency || "TWD", convCurrency), 0);
+      }, [expenses, convCurrency]);
+      const currenciesUsed = Object.keys(expensesByCurrency);
+
       const sortedDayItems = (day.items || [])
         .map((it, i) => ({ it, i }))
         .sort((a, b) => parseTimeToMinutes(a.it.time) - parseTimeToMinutes(b.it.time));
-
-      const ExpenseSummarySection = () => {
-        const currencies = Object.keys(expensesByCurrency);
-        if (currencies.length === 0) return <div className="tj-empty-sm">還沒有費用紀錄</div>;
-
-        return (
-          <div className="tj-exp-grid">
-            {currencies.map((curr) => {
-              const data = expensesByCurrency[curr];
-              const catList = EXP_CATEGORIES.map((c) => ({ category: c, amount: data.categories[c] || 0 })).filter((c) => c.amount > 0);
-              const maxAmt = Math.max(1, ...catList.map((c) => c.amount));
-
-              return (
-                <div className="tj-exp-summary-card" key={curr}>
-                  <div className="tj-exp-total">
-                    <div className="tj-exp-total-label">{curr} 總計</div>
-                    <div className="tj-exp-total-value">{fmtNum(data.total)} <span style={{fontSize: 12}}>{curr}</span></div>
-                  </div>
-                  <div className="tj-bars">
-                    {catList.map((c) => (
-                      <div className="tj-bar-row" key={c.category}>
-                        <span>{c.category}</span>
-                        <div className="tj-bar-track"><div className="tj-bar-fill" style={{ width: `${(c.amount / maxAmt) * 100}%`, background: EXP_COLORS[c.category] }} /></div>
-                        <span style={{ textAlign: "right" }}>{fmtNum(c.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      };
 
       return (
         <div>
@@ -954,7 +992,7 @@
           <div className="tj-detail-header">
             <div>
               <div className="tj-detail-title">{trip.title}</div>
-              <div className="tj-detail-sub">{trip.year || "2026"}年 ・ {trip.dateRange} ・ {trip.route} ・ {days.length} 天{Math.max(days.length - 1, 0)}夜</div>
+              <div className="tj-detail-sub">{trip.year || String(CURRENT_YEAR)}年 ・ {trip.dateRange} ・ {trip.route} ・ {days.length} 天{Math.max(days.length - 1, 0)}夜</div>
             </div>
             <div className="tj-action-btns">
               <button className="tj-btn-mode" onClick={() => setReadMode((v) => !v)}>
@@ -1024,7 +1062,16 @@
 
               <div className="tj-read-section">
                 <div className="tj-read-sec-title">💰 費用總覽</div>
-                <ExpenseSummarySection />
+                {currenciesUsed.length > 1 && (
+                  <div className="tj-conv-bar">
+                    <span>換算成單一幣別參考（示範匯率）：</span>
+                    <select value={convCurrency} onChange={(e) => setConvCurrency(e.target.value)}>
+                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <span className="tj-conv-total">≈ {fmtNum(convertedTotal)} {convCurrency}</span>
+                  </div>
+                )}
+                <ExpenseSummarySection expensesByCurrency={expensesByCurrency} />
                 {expenses.map((e) => (
                   <div className="tj-row" key={e.id}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1157,8 +1204,18 @@
 
               <div className="tj-panel">
                 <div className="tj-panel-title">💰 費用管理</div>
+
+                {currenciesUsed.length > 1 && (
+                  <div className="tj-conv-bar">
+                    <span>換算成單一幣別參考（示範匯率，非即時匯率）：</span>
+                    <select value={convCurrency} onChange={(e) => setConvCurrency(e.target.value)}>
+                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <span className="tj-conv-total">≈ {fmtNum(convertedTotal)} {convCurrency}</span>
+                  </div>
+                )}
                 
-                <ExpenseSummarySection />
+                <ExpenseSummarySection expensesByCurrency={expensesByCurrency} />
 
                 {expenses.length === 0 && <div className="tj-empty-sm">尚未新增任何費用</div>}
                 {expenses.map((e) => (
@@ -1175,7 +1232,7 @@
                         {fmtNum(e.amount)} {e.currency}
                       </div>
                       <button className="tj-mini-edit" onClick={() => startEditExpense(e)}>✏️</button>
-                      <button className="tj-mini-del" onClick={() => removeExpense(e.id)}>✕</button>
+                      <button className="tj-mini-del" onClick={() => removeExpense(e)}>✕</button>
                     </div>
                   </div>
                 ))}
