@@ -36,7 +36,7 @@
     .tj-pin-group { cursor:pointer; }
     .tj-pin-ring { fill:none; stroke:var(--stamp); stroke-width:1.4; opacity:0.5; }
     .tj-pin-dot { fill:var(--stamp); stroke:var(--card); stroke-width:1.6; }
-    .tj-pin-label { font-family:'IBM Plex Mono', monospace; font-size:9px; fill:var(--navy-deep); font-weight:600; }
+    .tj-pin-label { font-family:'IBM Plex Mono', monospace; font-size:10px; fill:var(--navy-deep); font-weight:600; }
     .tj-section-title { font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:28px 0 14px; display:flex; align-items:center; justify-content:space-between; }
     .tj-trip-list { display:grid; gap:14px; }
     .tj-ticket { display:flex; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; }
@@ -63,7 +63,6 @@
     .tj-notes-input { width:100%; min-height:100px; border:1px solid var(--line); border-radius:8px; padding:12px; font-family:'Work Sans', sans-serif; font-size:14px; line-height:1.7; resize:vertical; background:var(--paper); color:var(--ink); }
     .tj-btn-save { background:var(--stamp); color:#fff; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer; font-weight:500; margin-top:8px; }
     
-    /* 彈跳視窗 Modal */
     .tj-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
     .tj-modal { background: var(--card); border-radius: 12px; padding: 24px; width: 90%; max-width: 480px; border: 1px solid var(--line); }
     .tj-modal-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; margin-bottom: 16px; }
@@ -113,22 +112,45 @@
 
     const MAP_W = 900, MAP_H = 460;
     const WORLD_GEOJSON_URL = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
-    const MAP_PINS = [
-      { key: "JP", label: "日本", lat: 36.5, lon: 138 },
-      { key: "KR", label: "韓國", lat: 37.5, lon: 127.5 },
-      { key: "TW", label: "台灣", lat: 23.7, lon: 121 },
-      { key: "AT", label: "奧地利", lat: 47.5, lon: 14.5 },
-      { key: "CZ", label: "捷克", lat: 49.8, lon: 15.5 },
-    ];
 
-    function WorldMap({ onSelectCountry }) {
-      const [zoomed, setZoomed] = React.useState(true);
+    // 常用國家的經緯度字典與中文顯示名稱
+    const COUNTRY_DICT = {
+      JP: { label: "日本", lat: 36.5, lon: 138 },
+      KR: { label: "韓國", lat: 37.5, lon: 127.5 },
+      TW: { label: "台灣", lat: 23.7, lon: 121 },
+      AT: { label: "奧地利", lat: 47.5, lon: 14.5 },
+      CZ: { label: "捷克", lat: 49.8, lon: 15.5 },
+      US: { label: "美國", lat: 37.0, lon: -95.7 },
+      FR: { label: "法國", lat: 46.2, lon: 2.2 },
+      IT: { label: "義大利", lat: 41.8, lon: 12.5 },
+      UK: { label: "英國", lat: 55.3, lon: -3.4 },
+      TH: { label: "泰國", lat: 15.8, lon: 100.9 },
+      SG: { label: "新加坡", lat: 1.35, lon: 103.8 }
+    };
+
+    function WorldMap({ trips, onSelectCountry }) {
+      const [zoomed, setZoomed] = React.useState(false); // 預設視角改為全圖，方便查看各地
       const [worldGeo, setWorldGeo] = React.useState(null);
       const [status, setStatus] = React.useState("loading");
 
       React.useEffect(() => {
         fetch(WORLD_GEOJSON_URL).then((r) => r.json()).then((data) => { setWorldGeo(data); setStatus("ready"); }).catch(() => setStatus("error"));
       }, []);
+
+      // 計算使用者實際有行程的國家與次數
+      const activePins = React.useMemo(() => {
+        const counts = {};
+        trips.forEach((t) => {
+          if (t.countryKey) {
+            counts[t.countryKey] = (counts[t.countryKey] || 0) + 1;
+          }
+        });
+
+        return Object.keys(counts).map((key) => {
+          const info = COUNTRY_DICT[key] || { label: key, lat: 0, lon: 0 };
+          return { key, label: info.label, lat: info.lat, lon: info.lon, count: counts[key] };
+        });
+      }, [trips]);
 
       const projection = React.useMemo(() => {
         if (!worldGeo) return null;
@@ -140,25 +162,25 @@
       const pinPoints = React.useMemo(() => {
         if (!projection) return {};
         const map = {};
-        MAP_PINS.forEach((p) => { map[p.key] = projection([p.lon, p.lat]); });
+        activePins.forEach((p) => { map[p.key] = projection([p.lon, p.lat]); });
         return map;
-      }, [projection]);
+      }, [projection, activePins]);
 
       const asiaViewBox = React.useMemo(() => {
         if (!projection) return null;
-        const pts = MAP_PINS.map((p) => pinPoints[p.key]).filter(Boolean);
+        const pts = activePins.map((p) => pinPoints[p.key]).filter(Boolean);
         if (pts.length === 0) return null;
         const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
         const minX = Math.min(...xs) - 75, maxX = Math.max(...xs) + 75;
         const minY = Math.min(...ys) - 75, maxY = Math.max(...ys) + 75;
         return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
-      }, [projection, pinPoints]);
+      }, [projection, pinPoints, activePins]);
 
       return (
         <div className="tj-map-wrap">
           <div className="tj-map-toolbar">
             <button className="tj-zoom-btn" onClick={() => setZoomed((z) => !z)}>
-              {zoomed ? "🔍 顯示世界地圖" : "🔍 聚焦東亞"}
+              {zoomed ? "🔍 全景視角" : "🔍 聚焦行程點"}
             </button>
           </div>
           <svg className="tj-map-svg" viewBox={zoomed && asiaViewBox && status === "ready" ? asiaViewBox : `0 0 ${MAP_W} ${MAP_H}`}>
@@ -166,14 +188,14 @@
             {status === "ready" && worldGeo.features.map((f, i) => (
               <path key={i} d={pathGen(f)} className="tj-land" />
             ))}
-            {status === "ready" && MAP_PINS.map((p) => {
+            {status === "ready" && activePins.map((p) => {
               const pt = pinPoints[p.key];
               if (!pt) return null;
               return (
                 <g key={p.key} className="tj-pin-group" transform={`translate(${pt[0]}, ${pt[1]})`} onClick={() => onSelectCountry(p.key)}>
-                  <circle r={9} className="tj-pin-ring" />
+                  <circle r={7 + p.count * 2} className="tj-pin-ring" />
                   <circle r="4.5" className="tj-pin-dot" />
-                  <text x="10" y="4" className="tj-pin-label">{p.label}</text>
+                  <text x="10" y="4" className="tj-pin-label">{p.label} · {p.count}趟</text>
                 </g>
               );
             })}
@@ -226,7 +248,6 @@
       const [tripsState, setTripsState] = React.useState([]);
       const [showAddModal, setShowAddModal] = React.useState(false);
 
-      // 表單 State
       const [newTrip, setNewTrip] = React.useState({
         title: "", city: "", countryKey: "JP", status: "planned", dateRange: "", route: "", dayCount: 3
       });
@@ -243,7 +264,6 @@
       const filteredTrips = filterKey ? tripsState.filter((t) => t.countryKey === filterKey) : tripsState;
       const openTrip = (id) => { setSelectedId(id); setTab("detail"); };
 
-      // 新增行程至 Firebase
       const handleAddTrip = async (e) => {
         e.preventDefault();
         if (!newTrip.title || !newTrip.city) return alert("請填寫完整名稱與城市！");
@@ -266,10 +286,8 @@
 
         setShowAddModal(false);
         setNewTrip({ title: "", city: "", countryKey: "JP", status: "planned", dateRange: "", route: "", dayCount: 3 });
-        alert("行程已新增成功！");
       };
 
-      // 刪除行程
       const handleDeleteTrip = async (id) => {
         if (confirm("確定要刪除這趟旅程紀錄嗎？刪除後無法復原喔！")) {
           await db.collection("trips").doc(id).delete();
@@ -305,7 +323,7 @@
           <div className="tj-body">
             {tab === "map" && (
               <>
-                <WorldMap onSelectCountry={(key) => { setFilterKey(key); setTab("trips"); }} />
+                <WorldMap trips={tripsState} onSelectCountry={(key) => { setFilterKey(key); setTab("trips"); }} />
                 <div className="tj-section-title">
                   📍 最新紀錄
                 </div>
@@ -319,7 +337,7 @@
             {tab === "trips" && (
               <>
                 <div className="tj-section-title">
-                  ✈️ 所有行程紀錄
+                  ✈️ {filterKey ? `${COUNTRY_DICT[filterKey]?.label || filterKey} 的行程` : "所有行程紀錄"}
                 </div>
                 {filterKey && <div className="tj-back" onClick={() => setFilterKey(null)}>← 清除篩選，顯示全部</div>}
                 <div className="tj-trip-list">
@@ -334,7 +352,6 @@
             )}
           </div>
 
-          {/* 新增行程彈跳表單 Modal */}
           {showAddModal && (
             <div className="tj-modal-overlay">
               <div className="tj-modal">
@@ -342,20 +359,18 @@
                 <form onSubmit={handleAddTrip}>
                   <div className="tj-form-group">
                     <label>行程名稱</label>
-                    <input required placeholder="例如：東京秋楓自由行 / 奧捷跟團10日" value={newTrip.title} onChange={(e) => setNewTrip({...newTrip, title: e.target.value})} />
+                    <input required placeholder="例如：奧捷跟團10日 / 東京賞楓" value={newTrip.title} onChange={(e) => setNewTrip({...newTrip, title: e.target.value})} />
                   </div>
                   <div className="tj-form-group">
                     <label>主要城市</label>
-                    <input required placeholder="例如：東京 / 布拉格" value={newTrip.city} onChange={(e) => setNewTrip({...newTrip, city: e.target.value})} />
+                    <input required placeholder="例如：維也納 & 布拉格" value={newTrip.city} onChange={(e) => setNewTrip({...newTrip, city: e.target.value})} />
                   </div>
                   <div className="tj-form-group">
                     <label>國家地區</label>
                     <select value={newTrip.countryKey} onChange={(e) => setNewTrip({...newTrip, countryKey: e.target.value})}>
-                      <option value="JP">日本</option>
-                      <option value="KR">韓國</option>
-                      <option value="TW">台灣</option>
-                      <option value="AT">奧地利</option>
-                      <option value="CZ">捷克</option>
+                      {Object.keys(COUNTRY_DICT).map((code) => (
+                        <option key={code} value={code}>{COUNTRY_DICT[code].label}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="tj-form-group">
