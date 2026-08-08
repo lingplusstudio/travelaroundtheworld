@@ -50,26 +50,35 @@
 
     .tj-section-title { font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:28px 0 14px; display:flex; align-items:center; justify-content:space-between; flex-wrap: wrap; gap: 10px; }
     .tj-trip-list { display:grid; gap:14px; }
+    
+    /* 卡片整體與狀態主題配色 */
     .tj-ticket { display:flex; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; }
     .tj-ticket-main { flex:1; padding:16px 20px; min-width: 0; word-break: break-word; }
     .tj-ticket-top { display:flex; justify-content:space-between; align-items:baseline; }
     .tj-ticket-city { font-family:'Fraunces', serif; font-size:19px; font-weight:600; }
-    .tj-ticket-status { font-family:'IBM Plex Mono', monospace; font-size:10px; padding:3px 9px; border-radius:12px; }
-    .tj-ticket-status.completed { background:#E7EEE9; color:var(--teal); }
-    .tj-ticket-status.planned { background:#EDEEF2; color:var(--navy); }
     .tj-ticket-title { color:var(--ink-soft); font-size:13px; margin-top:2px; word-break: break-word; }
     .tj-ticket-meta { display:flex; gap:12px; margin-top:12px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); flex-wrap: wrap; align-items: center; }
-    
-    /* 旅程序號樣式 */
-    .tj-trip-index { background: var(--navy); color: #F7F3EA; font-weight: 600; padding: 2px 7px; border-radius: 4px; font-size: 11px; }
     .tj-ticket-expense { background: #F2EFE6; color: var(--navy); padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px; }
 
-    .tj-ticket-stub { width:110px; background:var(--navy); color:#F7F3EA; display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:2px dashed rgba(247,243,234,0.35); font-family:'IBM Plex Mono', monospace; font-size:11px; gap:6px; padding:10px; flex-shrink: 0; }
+    /* 狀態顏色微調 */
+    .tj-ticket-status { font-family:'IBM Plex Mono', monospace; font-size:10px; padding:3px 9px; border-radius:12px; font-weight: 600; }
+    .tj-ticket-status.completed { background:#E7EEE9; color:var(--navy); }
+    .tj-ticket-status.planned { background:#FBEBE8; color:var(--stamp); }
+
+    /* 右側票根配色差異 */
+    .tj-ticket-stub { width:110px; color:#F7F3EA; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'IBM Plex Mono', monospace; font-size:11px; gap:6px; padding:10px; flex-shrink: 0; }
+    .tj-ticket-stub.completed { background: var(--navy); border-left:2px dashed rgba(247,243,234,0.35); }
+    .tj-ticket-stub.planned { background: var(--stamp); border-left:2px dashed rgba(247,243,234,0.35); }
+    
+    /* 序號標籤配色差異 */
+    .tj-trip-index { font-weight: 600; padding: 2px 7px; border-radius: 4px; font-size: 11px; color: #F7F3EA; }
+    .tj-trip-index.completed { background: var(--navy); }
+    .tj-trip-index.planned { background: var(--stamp); }
+
     .tj-ticket-route { font-size:12px; font-weight:600; text-align: center; word-break: break-all; }
     .tj-btn-copy-card { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #F7F3EA; padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
     .tj-btn-copy-card:hover { background: rgba(255,255,255,0.3); }
 
-    /* 年度篩選橫條與次數提示 */
     .tj-year-bar-wrap { margin-bottom: 16px; }
     .tj-year-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; align-items: center; }
     .tj-year-label { font-size: 12px; font-family: 'IBM Plex Mono', monospace; color: var(--ink-soft); flex-shrink: 0; margin-right: 4px; }
@@ -147,6 +156,10 @@
     .tj-bar-fill { background: var(--stamp); height: 100%; border-radius: 4px; }
     .tj-tag { font-size: 11px; padding: 3px 8px; border-radius: 10px; color: #fff; display: inline-block; flex-shrink: 0; }
     .tj-exp-amount { font-family: 'IBM Plex Mono', monospace; text-align: right; white-space: nowrap; font-weight: 500; }
+
+    .tj-conv-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; color: var(--ink-soft); }
+    .tj-conv-bar select { border:1px solid var(--line); border-radius:6px; padding:4px 8px; font-size:12px; background: var(--card); color: var(--ink); }
+    .tj-conv-total { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; color: var(--navy); }
 
     .tj-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
     .tj-modal { background: var(--card); border-radius: 12px; padding: 24px; width: 90%; max-width: 480px; border: 1px solid var(--line); max-height: 90vh; overflow-y: auto; }
@@ -441,7 +454,6 @@
         return () => unsub();
       }, []);
 
-      // 🛡️ 動態產生年度選單
       const dynamicYears = React.useMemo(() => {
         const yearSet = new Set();
         for (let y = CURRENT_YEAR + 1; y >= 2020; y--) {
@@ -452,7 +464,6 @@
         return ["全部", ...sorted];
       }, [tripsState]);
 
-      // 🔄 依出發日期 (startDate) 降冪排序 (最新的在前)
       const sortTripsByDate = React.useCallback((list) => {
         return [...list].sort((a, b) => {
           const dateA = a.startDate || `${a.year || "2000"}-01-01`;
@@ -466,9 +477,7 @@
         });
       }, []);
 
-      // 🔢 依「該年度內部」的時間先後 (從年初到年末) 計算序號
       const attachYearIndex = React.useCallback((tripsList) => {
-        // 先按年度分群，並依照升冪 (年初到年末) 排序計算序號 #01, #02...
         const yearGroups = {};
         tripsList.forEach(t => {
           const y = t.year || String(CURRENT_YEAR);
@@ -478,7 +487,6 @@
 
         const indexMap = {};
         Object.keys(yearGroups).forEach(y => {
-          // 年內由舊到新排序 (年初 1 月排第一，編號 #01)
           const sortedAsc = [...yearGroups[y]].sort((a, b) => {
             const dateA = a.startDate || `${a.year || "2000"}-01-01`;
             const dateB = b.startDate || `${b.year || "2000"}-01-01`;
@@ -489,7 +497,6 @@
           });
         });
 
-        // 將序號掛回原本由新到舊排序的列表中
         return tripsList.map(t => ({ ...t, yearIndex: indexMap[t.id] || "01" }));
       }, []);
 
@@ -856,6 +863,9 @@
     }
 
     function TripCard({ trip, onClick, onCopy }) {
+      const isCompleted = trip.status === "completed";
+      const statusClass = isCompleted ? "completed" : "planned";
+
       const totalExpenseStr = React.useMemo(() => {
         const expenses = trip.expenses || [];
         if (!expenses.length) return null;
@@ -876,18 +886,20 @@
           <div className="tj-ticket-main">
             <div className="tj-ticket-top">
               <span className="tj-ticket-city">{trip.city}</span>
-              <span className={`tj-ticket-status ${trip.status}`}>{trip.status === "completed" ? "已完成" : "計畫中"}</span>
+              <span className={`tj-ticket-status ${statusClass}`}>
+                {isCompleted ? "已完成" : "計畫中"}
+              </span>
             </div>
             <div className="tj-ticket-title">{trip.title}</div>
             <div className="tj-ticket-meta">
-              <span className="tj-trip-index">#{trip.yearIndex || "01"}</span>
+              <span className={`tj-trip-index ${statusClass}`}>#{trip.yearIndex || "01"}</span>
               <span>🗓️ {trip.year || String(CURRENT_YEAR)}年</span>
               <span>📅 {trip.dateRange}</span>
               <span>{trip.days?.length || 0} 天</span>
               {totalExpenseStr && <span className="tj-ticket-expense">💰 {totalExpenseStr}</span>}
             </div>
           </div>
-          <div className="tj-ticket-stub">
+          <div className={`tj-ticket-stub ${statusClass}`}>
             <div className="tj-ticket-route">{trip.route}</div>
             <button className="tj-btn-copy-card" onClick={onCopy}>📋 複製行程</button>
           </div>
